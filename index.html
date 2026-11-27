@@ -740,6 +740,8 @@ table.g2{border-collapse:separate;border-spacing:0}
   <summary>Saisie du planning : date limite et rappels</summary>
   <p class="note">Fixez pour chaque mois la date avant laquelle chacun doit avoir saisi gardes, SSPI, DIVLD, indisponibilités et congés. Chaque médecin voit alors un rappel dans Mon planning, et une pastille sur l'icône de l'appli, jusqu'à ce qu'il indique avoir terminé.</p>
   <div class="acts"><label class="nl" style="flex:0 0 auto"><span style="display:block;font-size:12px;color:var(--mut)">Mois à saisir</span><input class="in" type="month" id="dlM" style="height:44px;width:auto"></label><label class="nl" style="flex:0 0 auto"><span style="display:block;font-size:12px;color:var(--mut)">À rendre avant le</span><input class="in" type="date" id="dlD" style="height:44px;width:auto"></label><button class="tb" id="dlAdd">Enregistrer</button></div>
+  <div class="acts remote"><button class="tb" id="pushSend">Envoyer maintenant une notification aux retardataires</button></div>
+  <p class="note remote">Les notifications automatiques partent chaque soir à J-7, J-3, J-1, le jour J, puis J+1 et J+3 vers ceux qui n'ont pas appuyé sur « J'ai terminé » et ont activé les notifications.</p>
   <div id="dlList"></div>
 </details>
 <details class="remote adm">
@@ -750,6 +752,9 @@ table.g2{border-collapse:separate;border-spacing:0}
 <details class="remote">
   <summary>Mon compte</summary>
   <p id="acct"></p>
+  <p class="grp">Notifications de rappel</p>
+  <p class="note" id="pushInfo">…</p>
+  <div class="acts"><button class="tb" id="pushOn">Activer sur ce téléphone</button><button class="tb" id="pushTest">Tester</button></div>
   <p class="note" id="appv"></p>
   <div class="acts"><button class="tb" id="chPw">Changer mon mot de passe</button><button class="tb" id="logout">Se déconnecter</button></div>
 </details>
@@ -1157,31 +1162,66 @@ $('docs').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(
 $('docs').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b||!twoTap(b,'Sûr ?'))return;const d=S.docs.splice(+b.dataset.del,1)[0];for(const k in S.plan)delete S.plan[k][d.id];save();renderEditors();render()});
 let undo=null;
 $('autoFill').onclick=()=>{
-  const days=range().filter(k=>!isWE(k)),slots=S.posts.filter(p=>p.auto&&p.cat==='travail'&&(+p.nw||0)>0);
+  const rg=range(),inR=new Set(rg),days=rg.filter(k=>!isWE(k)),slots=S.posts.filter(p=>p.auto&&p.cat==='travail'&&(+p.nw||0)>0);
   if(!S.docs.length||!slots.length){$('fillMsg').textContent='Rien à répartir : ajoutez des médecins et cochez « Auto » sur les postes concernés.';return}
   undo=clone(S.plan);
-  // compteurs de départ : mois (ou mois couverts) de la période affichée
-  const rg=range(),months=new Set([...last3(rg[0].slice(0,7)),...last3(rg[rg.length-1].slice(0,7))]),cnt={},tot={};
+  // compteurs de départ sur 3 mois glissants
+  const months=new Set([...last3(rg[0].slice(0,7)),...last3(rg[rg.length-1].slice(0,7))]),cnt={},tot={};
+  const docs=S.docs.filter(d=>!d.tmp);
   for(const d of S.docs){cnt[d.id]={};tot[d.id]=0}
   for(const [k,day] of Object.entries(S.plan)){if(!months.has(k.slice(0,7)))continue;for(const [d,v] of Object.entries(day)){if(!cnt[d])continue;for(const pid of ids(v))cnt[d][pid]=(cnt[d][pid]||0)+1;if(worked(k,d))tot[d]++}}
+  // poids de chacun = quotité × jours disponibles (congés et formations déduits)
   const W=Math.max(1,...S.docs.map(d=>availOf([...months],d.id))),eff={};for(const d of S.docs)eff[d.id]=Math.max(.05,pctOf(d.id)*availOf([...months],d.id)/W);
-  let filled=0,miss=0;
+  // libre : rien ce jour-là (ou seulement une garde de nuit), pas de garde la veille
+  const isFree=(k,d)=>{const m=PS(k,d).filter(x=>x.cat!=='autre');if(m.length&&!(m.length===1&&m[0].cat==='garde'&&!isWE(k)))return false;return !PS(addD(k,-1),d).some(x=>x.cat==='garde')};
+  // heures manquantes pour atteindre le minimum de la semaine (42 h × quotité, congés déduits)
+  // semaine à cheval sur la période : minimum au prorata des jours de semaine de la période, sauf si l'autre partie est déjà remplie
+  const defOf=(wk,d)=>{const w=weekH(wk,d);let fin=0,outW=false,hIn=0;
+    for(let i=0;i<7;i++){const k=addD(wk,i);if(inR.has(k)){if(!isWE(k))fin++;for(const p of PS(k,d))if(p.cat!=='absence')hIn+=hrs(p,k)}else if(!isWE(k)&&PS(k,d).some(p=>p.cat==='travail'))outW=true}
+    if(fin>=5||outW)return w.target-w.h;
+    const tw=[0,1,2,3,4].filter(i=>!isWE(addD(wk,i))).length||1;return w.target*Math.min(1,fin/tw)-hIn};
+  const freeLeft=(wk,d,from)=>{let n=0;for(let i=0;i<5;i++){const k=addD(wk,i);if(k>=from&&inR.has(k)&&!isWE(k)&&isFree(k,d))n++}return n};
+  const put=(k,d,pid)=>{(S.plan[k]=S.plan[k]||{})[d]=combine(get(k,d),pid);cnt[d][pid]=(cnt[d][pid]||0)+1;tot[d]++};
+  let filled=0,miss=0,extra=0;
+  // 1) postes à pourvoir : d'abord ceux qui n'ont pas encore leur temps de la semaine, puis équilibre des jours au prorata
   for(const k of days){
     const need=[];for(const p of slots){const n=needOf(p,k);if(!n)continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<n;i++)need.push(p)}
     need.sort(()=>Math.random()-.5);
     for(const p of need){
-      // libres : rien ce jour-là, ou seulement une garde de nuit (on privilégie alors une journée avant la garde)
-      const free=S.docs.filter(d=>{if(d.tmp)return false;const ps=PS(k,d.id);const m=ps.filter(x=>x.cat!=='autre');return !m.length||(m.length===1&&m[0].cat==='garde')});
+      const free=docs.filter(d=>isFree(k,d.id));
       if(!free.length){miss++;continue}
       const wk=monOf(k);
-      const score=d=>{const q=pctOf(d.id),w=weekH(wk,d.id);return (cnt[d.id][p.id]||0)/eff[d.id]*3+tot[d.id]/eff[d.id]*2+(w.h>=w.target?4:0)-(get(k,d.id)?5:0)+Math.random()};
-      const best=free.reduce((a,b)=>score(b)<score(a)?b:a);
-      (S.plan[k]=S.plan[k]||{})[best.id]=combine(get(k,best.id),p.id);cnt[best.id][p.id]=(cnt[best.id][p.id]||0)+1;tot[best.id]++;filled++;
+      const mxH=Math.max(...slots.map(x=>+x.h||0)),hp=hrs(p,k);
+      const score=d=>{const df=defOf(wk,d.id),fl=freeLeft(wk,d.id,k),urg=df>0?df/Math.max(1,fl*(+S.dayH||11)):0,ko=df>0&&df-hp>(fl-1)*mxH;
+        return (df>0?(ko?50:-100-50*urg):0)+(cnt[d.id][p.id]||0)/eff[d.id]+tot[d.id]/eff[d.id]*2-(get(k,d.id)?3:0)+Math.random()*.5};
+      const sc=new Map(free.map(d=>[d.id,score(d)])),best=free.reduce((a,b)=>sc.get(b.id)<sc.get(a.id)?b:a);
+      put(k,best.id,p.id);filled++;
+    }
+  }
+  // 2) temps hebdomadaire : ceux encore sous le minimum reçoivent des jours en plus (jamais moins, plus possible)
+  const pick=k=>{const b=slots.find(p=>p.id==='b1')||slots[0];if(needOf(b,k)||!(typeof BLOC==='function'&&BLOC()&&b.id===BLOC().id&&blocClosed(k)))return b;return slots.find(p=>p.id!==b.id&&dayOk(p,k))||null};
+  const present=k=>S.docs.filter(d=>worked(k,d.id)).length;
+  const weeks=[...new Set(days.map(monOf))];let short=new Set();
+  for(const wk of weeks){
+    for(const d of [...docs].sort(()=>Math.random()-.5)){
+      let guard=0;
+      while(defOf(wk,d.id)>0&&guard++<7){
+        const c=[0,1,2,3,4].map(i=>addD(wk,i)).filter(k=>inR.has(k)&&!isWE(k)&&isFree(k,d.id)&&pick(k));
+        if(!c.length){
+          // plus de jour libre : échanger une consultation (8 h) contre le bloc (11 h) d'un collègue qui garde son minimum
+          let sw=null;for(let i=0;i<5&&!sw;i++){const k=addD(wk,i);if(!inR.has(k))continue;const mine=ids(get(k,d.id)).map(P).find(x=>x&&x.auto&&x.cat==='travail');if(!mine)continue;
+            for(const o of docs){if(o.id===d.id)continue;const th=ids(get(k,o.id)).map(P).find(x=>x&&x.auto&&x.cat==='travail');if(th&&hrs(th,k)>hrs(mine,k)&&defOf(wk,o.id)+hrs(th,k)-hrs(mine,k)<=0&&dayOk(mine,k)){sw=[k,o.id,mine.id,th.id];break}}}
+          if(!sw){short.add(d.id+wk);break}
+          const [k,o,a1,b1]=sw,rp=(v,x,y)=>ids(v).map(z=>z===x?y:z).join('+');(S.plan[k])[d.id]=rp(get(k,d.id),a1,b1);S.plan[k][o]=rp(get(k,o),b1,a1);extra++;continue}
+        const k=c.reduce((a,b)=>{const x=present(a)+(get(a,d.id)?.5:0)+Math.random()*.9,y=present(b)+(get(b,d.id)?.5:0)+Math.random()*.9;return y<x?b:a});
+        put(k,d.id,pick(k).id);extra++;
+      }
     }
   }
   S.ex=false;save();render();
-  $('undoFill').hidden=!filled;
-  $('fillMsg').textContent=filled?`${filled} case(s) remplie(s) au hasard en équilibrant les médecins${miss?`, ${miss} poste(s) sans médecin disponible`:''}. Gardes, SSPI, DIVLD, TNC, repos et congés déjà saisis n'ont pas été touchés.`:(miss?`${miss} poste(s) sans médecin disponible.`:'Tout est déjà pourvu sur la période.');
+  $('undoFill').hidden=!(filled||extra);
+  const L=[];if(filled)L.push(`${filled} poste(s) pourvu(s)`);if(extra)L.push(`${extra} journée(s) ajoutée(s) pour atteindre le temps hebdomadaire de chacun`);
+  $('fillMsg').textContent=(L.length?L.join(', ')+', en équilibrant les jours de présence selon la quotité.':'Tout est déjà pourvu et chacun a son temps sur la période.')+(miss?` ${miss} poste(s) sans médecin disponible.`:'')+(short.size?` ${short.size} semaine(s) restent sous le minimum faute de jour libre.`:'')+' Vous pouvez ensuite compléter ou corriger à la main. Gardes, SSPI, DIVLD, TNC, repos et congés déjà saisis n\'ont pas été touchés.';
 };
 $('perBtn').onclick=()=>{
   if(!S.docs.length){$('fillMsg').textContent='Ajoutez d\'abord des médecins dans « Équipe ».';return}
@@ -1365,6 +1405,35 @@ $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
 $('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
 $('mTeam').onclick=()=>showTab('Team');
+// ===== Notifications push =====
+let PUSH='unsupported';
+const FN=()=>CFG.url.replace(/\/+$/,'')+'/functions/v1/rappels';
+const b64u=x=>{const b=atob((x+'='.repeat((4-x.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+async function pushRefresh(){
+  try{if(!REMOTE||!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))PUSH=isIOS()&&!standalone()?'install':'unsupported';
+    else{const r=await Promise.race([navigator.serviceWorker.ready,new Promise((_,j)=>setTimeout(()=>j(new Error('sw')),5000))]),sub=await r.pushManager.getSubscription();PUSH=Notification.permission==='denied'?'denied':sub&&Notification.permission==='granted'?'on':'off'}}catch(e){PUSH='unsupported'}
+  const T={on:'Activées sur ce téléphone.',off:'Pas encore activées sur ce téléphone.',denied:'Bloquées : autorisez les notifications pour cette appli dans les réglages du téléphone.',install:'Sur iPhone, installez d\'abord l\'appli sur l\'écran d\'accueil (Partager › Sur l\'écran d\'accueil), ouvrez-la depuis l\'icône, puis activez les notifications ici.',unsupported:REMOTE?'Ce navigateur ne gère pas les notifications.':'Disponible dans la version en ligne.'};
+  if($('pushInfo'))$('pushInfo').textContent=T[PUSH]||'';$('pushOn').hidden=PUSH!=='off';$('pushTest').hidden=PUSH!=='on';
+  if(tab==='Me'&&typeof renderMe==='function')renderMe();
+}
+async function fnCall(action,auth){const h={'Content-Type':'application/json',apikey:CFG.key};if(auth){const {data}=await sb.auth.getSession();if(data?.session)h.Authorization='Bearer '+data.session.access_token}
+  const r=await fetch(FN(),{method:'POST',headers:h,body:JSON.stringify({action})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Service de notifications indisponible ('+r.status+') : la fonction « rappels » est-elle installée ?'));return j}
+async function pushEnable(){
+  const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('Notifications refusées : autorisez-les dans les réglages du téléphone.');
+  const {publicKey}=await fnCall('key');const r=await navigator.serviceWorker.ready;let sub=await r.pushManager.getSubscription();
+  if(sub){const k=sub.options&&sub.options.applicationServerKey;if(k&&btoa(String.fromCharCode(...new Uint8Array(k))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')!==publicKey){await sub.unsubscribe();sub=null}}
+  if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(publicKey)});
+  const j=sub.toJSON();await sb.from('push_subs').delete().eq('endpoint',j.endpoint);
+  const {error}=await sb.from('push_subs').insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth});
+  if(error&&error.code!=='23505')throw new Error('Enregistrement impossible : '+error.message);
+}
+$('pushOn').onclick=async()=>{const b=$('pushOn');b.disabled=true;try{await pushEnable();sync('Notifications activées sur ce téléphone');await pushRefresh()}catch(e){sync(e.message,true)}finally{b.disabled=false}};
+$('pushTest').onclick=async()=>{try{const j=await fnCall('test',true);sync(j.sent?'Notification de test envoyée':'Aucun appareil enregistré pour ce compte',!j.sent)}catch(e){sync(e.message,true)}};
+$('pushSend').onclick=async()=>{const b=$('pushSend');if(!twoTap(b,'Confirmer l\'envoi'))return;try{const j=await fnCall('send',true);sync(`${j.sent||0} notification(s) envoyée(s) à ${j.users||0} médecin(s) en retard`)}catch(e){sync(e.message,true)}finally{b.dataset.sure='';b.textContent='Envoyer maintenant une notification aux retardataires';b.style.fontSize=''}};
+setTimeout(()=>pushRefresh().catch(()=>{}));
+$('agenda').addEventListener('click',e=>{const b=e.target.closest('[data-pushon]');if(!b)return;e.stopImmediatePropagation();if(PUSH==='install'){showTab('Set');return}$('pushOn').click()},true);
 // ===== Saisie du planning : dates limites, rappels, suivi =====
 let ACC=[];
 const ymLab=ym=>{const [y,m]=ym.split('-').map(Number);return MO[m-1]+' '+y};
@@ -1374,7 +1443,7 @@ const doneOf=(ym,d)=>{if(d===U.me)return !!(U.done||{})[ym];const a=ACC.find(x=>
 function dlTodo(){if(!U.me||isSec||!DOC(U.me)||DOC(U.me).tmp)return [];return dlOpen().filter(([ym])=>!(U.done||{})[ym])}
 function dlBanner(){const L=dlTodo();try{if(navigator.setAppBadge){L.length?navigator.setAppBadge(L.length):navigator.clearAppBadge()}}catch(e){}
   return L.map(([ym,due])=>{const late=due<TK,soon=!late&&addD(TK,7)>=due,n=entered(ym,U.me);
-    return `<div class="dlb${late?' late':soon?' soon':''}"><div><b>Saisie de ${esc(ymLab(ym))}</b><small>${late?'Date limite dépassée ('+fD(due)+')':'À faire avant le '+fD(due)}${' · '+n+' jour'+(n>1?'s':'')+' saisi'+(n>1?'s':'')}. Gardes, SSPI, DIVLD, indisponibilités, congés.</small></div><div class="acts"><button class="tb" data-dlgo="${esc(ym)}">Saisir</button><button class="tb pri" data-dlok="${esc(ym)}">J'ai terminé</button></div></div>`}).join('')}
+    return `<div class="dlb${late?' late':soon?' soon':''}"><div><b>Saisie de ${esc(ymLab(ym))}</b><small>${late?'Date limite dépassée ('+fD(due)+')':'À faire avant le '+fD(due)}${' · '+n+' jour'+(n>1?'s':'')+' saisi'+(n>1?'s':'')}. Gardes, SSPI, DIVLD, indisponibilités, congés.</small></div><div class="acts"><button class="tb" data-dlgo="${esc(ym)}">Saisir</button><button class="tb pri" data-dlok="${esc(ym)}">J'ai terminé</button>${PUSH==='off'||PUSH==='install'?'<button class="tb" data-pushon="1">🔔 Recevoir les rappels</button>':''}</div></div>`}).join('')}
 $('agenda').addEventListener('click',e=>{const g=e.target.closest('[data-dlgo]'),o=e.target.closest('[data-dlok]');if(!g&&!o)return;e.stopImmediatePropagation();
   if(g){U.mv='m';meM=g.dataset.dlgo;meSel=meM+'-01';savePrefs();renderMe();window.scrollTo(0,0);return}
   U.done=Object.assign({},U.done,{[o.dataset.dlok]:new Date().toISOString()});savePrefs();renderMe();sync('Merci ! Saisie de '+ymLab(o.dataset.dlok)+' signalée comme terminée')},true);
@@ -1580,7 +1649,7 @@ async function afterLogin(){
   if(!p.active){await sb.auth.signOut();return showAuth('Votre compte n\'est pas encore activé. Demandez à l\'administrateur du planning de l\'activer.')}
   U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';isSec=p.role==='secretary';if(p.doc_id&&!isSec)U.me=p.doc_id;else if(!canAdmin&&!isSec)U.me='';
   $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':isSec?'secrétaire':'membre');
-  await pull();startApp();sync('À jour');loadAccts();loadSwaps();loadAccList();
+  await pull();startApp();sync('À jour');loadAccts();loadSwaps();loadAccList();pushRefresh();
   sb.channel('planning')
    .on('postgres_changes',{event:'*',schema:'public',table:'swaps'},()=>loadSwaps())
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
@@ -1615,7 +1684,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.4 (27 nov.)';
+const APPV='2027.5 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
