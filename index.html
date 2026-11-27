@@ -599,6 +599,16 @@ table.g2{border-collapse:separate;border-spacing:0}
 .msel-on #agenda [data-k],.msel-on #agenda [data-sel]{cursor:copy}
 .msel-on #agenda .picked{outline:3px solid var(--acc)!important;outline-offset:-3px;position:relative}
 .msel-on #agenda .picked::after{content:'✓';position:absolute;top:4px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;z-index:2}
+.dlb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 4px 0 0 var(--acc),var(--shadow)}
+.dlb b{display:block;font-size:15px}.dlb small{color:var(--mut);font-size:12.5px}.dlb .acts{margin:0;gap:6px}.dlb .tb.pri{background:var(--acc);color:#fff;border-color:transparent;font-weight:700}
+.dlb.soon{box-shadow:inset 4px 0 0 #f59e0b,var(--shadow)}.dlb.late{box-shadow:inset 4px 0 0 var(--red),var(--shadow)}.dlb.late small{color:var(--red);font-weight:600}
+.dlr{background:var(--soft);border-radius:14px;padding:10px 12px;margin:8px 0}.dlh{display:flex;align-items:center;gap:6px;font-size:14px}
+.dlg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dlg span{font-size:12.5px;background:var(--card);border-radius:10px;padding:3px 8px;color:var(--mut)}.dlg span.ok{color:var(--ok);font-weight:700}
+.dlr a.tb{text-decoration:none;display:inline-flex;align-items:center}
+.msel-on #board .cell{cursor:copy}.msel-on #board .picked{outline:3px solid var(--acc)!important;outline-offset:-3px;background:color-mix(in srgb,var(--acc) 14%,transparent)}
+#gMulti[aria-pressed=true]{background:var(--acc)!important;color:#fff!important}
+.mbar{z-index:30}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #hint{color:var(--mut)}
 </style>
 </head>
 <body>
@@ -645,6 +655,7 @@ table.g2{border-collapse:separate;border-spacing:0}
   <button class="ib" id="prev" aria-label="Période précédente">‹</button>
   <button class="tb" id="today">Auj.</button>
   <button class="ib" id="next" aria-label="Période suivante">›</button>
+  <button class="tb" id="gMulti" title="Sélectionner plusieurs cases pour les corriger en une fois">Sélection</button>
   <button class="tb" id="printBtn" title="Imprimer le planning de l'équipe (semaine ou mois affiché)">Imprimer</button>
 </header>
 <div class="pal" id="pal" role="toolbar" aria-label="Pinceaux"></div>
@@ -724,6 +735,12 @@ table.g2{border-collapse:separate;border-spacing:0}
     <button class="tb" id="bak">Sauvegarder / restaurer</button>
     <button class="tb adm" id="wipe">Tout effacer</button>
   </div>
+</details>
+<details class="adm">
+  <summary>Saisie du planning : date limite et rappels</summary>
+  <p class="note">Fixez pour chaque mois la date avant laquelle chacun doit avoir saisi gardes, SSPI, DIVLD, indisponibilités et congés. Chaque médecin voit alors un rappel dans Mon planning, et une pastille sur l'icône de l'appli, jusqu'à ce qu'il indique avoir terminé.</p>
+  <div class="acts"><label class="nl" style="flex:0 0 auto"><span style="display:block;font-size:12px;color:var(--mut)">Mois à saisir</span><input class="in" type="month" id="dlM" style="height:44px;width:auto"></label><label class="nl" style="flex:0 0 auto"><span style="display:block;font-size:12px;color:var(--mut)">À rendre avant le</span><input class="in" type="date" id="dlD" style="height:44px;width:auto"></label><button class="tb" id="dlAdd">Enregistrer</button></div>
+  <div id="dlList"></div>
 </details>
 <details class="remote adm">
   <summary>Comptes</summary>
@@ -859,10 +876,10 @@ const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[]
   if(!x.v5){if(!x.posts.some(p=>p.id==='reu'))x.posts.push({id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'travail',h:0,nw:0,ne:0,auto:false});x.v5=true}
   if(!x.v4){for(const p of x.posts)if(p.id==='rs'&&p.code==='RS')p.code='RQ';x.v4=true}
   if(!x.v3){for(const p of x.posts)if(p.id==='sspi'){p.auto=false;p.nw=0}x.v3=true}
-  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v13){const t=x.posts.find(p=>p.id==='tnc');if(t){if(+t.h===11)t.h=8;if(t.t==='8:00–19:00')t.t='9:00–17:00'}x.v13=true}if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.closures))x.closures=[];if(!['A','B','C','-'].includes(x.zone))x.zone='A';if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'7:30–18:30',b2:'7:30–18:30',b3:'7:30–18:30',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'9:00–17:00',cs:'8:30–16:30',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(!x.v14){for(const p of x.posts){if(p.id==='b1'&&p.t==='8:00–19:00')p.t='7:30–18:30';if(p.id==='cs'&&p.t==='9:00–17:00')p.t='8:30–16:30'}x.v14=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
+  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v13){const t=x.posts.find(p=>p.id==='tnc');if(t){if(+t.h===11)t.h=8;if(t.t==='8:00–19:00')t.t='9:00–17:00'}x.v13=true}if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.closures))x.closures=[];if(!['A','B','C','-'].includes(x.zone))x.zone='A';if(!x.dl||typeof x.dl!=='object')x.dl={};if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'7:30–18:30',b2:'7:30–18:30',b3:'7:30–18:30',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'9:00–17:00',cs:'8:30–16:30',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(!x.v14){for(const p of x.posts){if(p.id==='b1'&&p.t==='8:00–19:00')p.t='7:30–18:30';if(p.id==='cs'&&p.t==='9:00–17:00')p.t='8:30–16:30'}x.v14=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
 const ls=(k,v)=>{try{if(v===undefined){const r=localStorage.getItem(k);return r?JSON.parse(r):null}localStorage.setItem(k,JSON.stringify(v))}catch(e){mem=false;return null}};
 let isSec=false,S,U,mem=true,canEdit=true,canAdmin=true,sb=null,prof=null,lastAt=null,pushT=null,prefT=null,base={},baseCfg='';
-const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,closures:x.closures,zone:x.zone,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
+const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,closures:x.closures,zone:x.zone,dl:x.dl,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
 if(REMOTE){const c=ls(KEY+'-cache');S=norm(c&&c.S);U=Object.assign({colors:{}},c&&c.U)}
 else{S=ls(KEY);if(!S||!S.docs||S.ex)S=sample();S=norm(S);U=Object.assign({me:S.me||'d0',mode:'w',colors:{}},ls(KEY+'-prefs'));delete S.me}
 const tint=c=>`background:color-mix(in srgb,${c} ${fg(c)==='#ffffff'?20:38}%,var(--card));color:color-mix(in srgb,${c} ${fg(c)==='#ffffff'?'var(--tm)':'30%'},var(--ink))`;
@@ -963,7 +980,7 @@ function warnsFor(k,d){
   return w;
 }
 
-function render(){
+function render(){setTimeout(()=>{try{mselPaint()}catch(e){}});
   const days=range(),d0=D(days[0]),d1=D(days[days.length-1]);
   $('title').innerHTML=mode==='w'?`Semaine du ${d0.getDate()} ${MO[d0.getMonth()]}<small>au ${d1.getDate()} ${MO[d1.getMonth()]} ${d1.getFullYear()}</small>`:`${MO[d0.getMonth()][0].toUpperCase()+MO[d0.getMonth()].slice(1)} ${d0.getFullYear()}<small>${S.docs.length} médecins</small>`;
   $('pal').innerHTML=S.posts.filter(allowed).map(p=>`<button class="chip" data-b="${esc(p.id)}" aria-pressed="${brush===p.id}"><i style="background:${esc(col(p))}"></i>${esc(p.code)}</button>`).join('')+`<button class="chip" data-b="x" aria-pressed="${brush==='x'}">Gomme</button>`;
@@ -1109,7 +1126,7 @@ function renderVac(){
   $('vacInfo').innerHTML=S.zone==='-'?'Vacances scolaires masquées.':VAC.length?`Source : calendrier scolaire officiel (data.education.gouv.fr)${c&&c.at?', mis à jour le '+new Date(c.at).toLocaleDateString('fr-FR'):''}.${up.length?'<br>À venir : '+up.map(o=>esc(vacShort(o.n))+' du '+D(o.from).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' au '+D(addD(o.to,-1)).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})).join(' ; '):''}`:'Calendrier scolaire pas encore chargé (réseau nécessaire).';
 }
 function renderRooms(){
-  renderVac();
+  renderVac();renderDl();
   renderCl();
   const b=BLOC();$('blocN').value=b?+b.nw||0:0;$('blocN').disabled=!b;
   const n=openRooms().length,a=b?+b.nw||0:0;
@@ -1332,7 +1349,7 @@ function renderMe(){
   if(!me&&REMOTE&&!canAdmin&&!isSec){$('mPick').innerHTML='<h2>Compte pas encore relié</h2><p class="note">Votre compte n\'est pas encore relié à une ligne du planning. Demandez à l\'administrateur de le faire dans Réglages, Comptes.</p>';return}
   if(!me){$('mWho').textContent='';$('mPickL').innerHTML=S.docs.map(d=>`<button class="opt" data-me="${esc(d.id)}" style="background:var(--soft)">${esc(d.name)}</button>`).join('')||'<p class="note">Aucun médecin : ajoutez l\'équipe dans Réglages.</p>';return}
   $('mWho').textContent=me.name+(canAdmin||isSec||!REMOTE?' · changer':'');$('mPer').hidden=!mayEdit(me.id);$('mWho').disabled=REMOTE&&!canAdmin&&!isSec;
-  $('agenda').innerHTML=mv==='m'?monthView(me.id):weekView(me.id);mselPaint();
+  $('agenda').innerHTML=(me.id===U.me?dlBanner():'')+(mv==='m'?monthView(me.id):weekView(me.id));mselPaint();
   let mons;if(mv==='m'){const [y,m]=meM.split('-').map(Number),n=new Date(y,m,0).getDate();mons=[...new Set(Array.from({length:n},(_,i)=>monOf(meM+'-'+pad(i+1))))]}else mons=[meW];
   const warn=[];
   for(const mon of mons.filter(m=>addD(m,6)>=TK)){const c=capa(mon,me.id);if(c.ind&&c.max<c.target)warn.push(`Semaine du ${D(mon).getDate()} ${MO[D(mon).getMonth()]} : avec ${c.ind} jour(s) d'indisponibilité, vous ne pourrez atteindre que ${c.max} h sur ${c.target} h.`)}
@@ -1348,28 +1365,59 @@ $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
 $('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
 $('mTeam').onclick=()=>showTab('Team');
+// ===== Saisie du planning : dates limites, rappels, suivi =====
+let ACC=[];
+const ymLab=ym=>{const [y,m]=ym.split('-').map(Number);return MO[m-1]+' '+y};
+const dlOpen=()=>Object.entries(S.dl||{}).filter(([ym,due])=>addD(due,30)>=TK).sort();
+const entered=(ym,d)=>Object.keys(S.plan).filter(k=>k.startsWith(ym)&&ids(get(k,d)).some(x=>P(x)&&!P(x).auto)).length;
+const doneOf=(ym,d)=>{if(d===U.me)return !!(U.done||{})[ym];const a=ACC.find(x=>x.doc_id===d);return !!(a&&a.prefs&&a.prefs.done&&a.prefs.done[ym])};
+function dlTodo(){if(!U.me||isSec||!DOC(U.me)||DOC(U.me).tmp)return [];return dlOpen().filter(([ym])=>!(U.done||{})[ym])}
+function dlBanner(){const L=dlTodo();try{if(navigator.setAppBadge){L.length?navigator.setAppBadge(L.length):navigator.clearAppBadge()}}catch(e){}
+  return L.map(([ym,due])=>{const late=due<TK,soon=!late&&addD(TK,7)>=due,n=entered(ym,U.me);
+    return `<div class="dlb${late?' late':soon?' soon':''}"><div><b>Saisie de ${esc(ymLab(ym))}</b><small>${late?'Date limite dépassée ('+fD(due)+')':'À faire avant le '+fD(due)}${' · '+n+' jour'+(n>1?'s':'')+' saisi'+(n>1?'s':'')}. Gardes, SSPI, DIVLD, indisponibilités, congés.</small></div><div class="acts"><button class="tb" data-dlgo="${esc(ym)}">Saisir</button><button class="tb pri" data-dlok="${esc(ym)}">J'ai terminé</button></div></div>`}).join('')}
+$('agenda').addEventListener('click',e=>{const g=e.target.closest('[data-dlgo]'),o=e.target.closest('[data-dlok]');if(!g&&!o)return;e.stopImmediatePropagation();
+  if(g){U.mv='m';meM=g.dataset.dlgo;meSel=meM+'-01';savePrefs();renderMe();window.scrollTo(0,0);return}
+  U.done=Object.assign({},U.done,{[o.dataset.dlok]:new Date().toISOString()});savePrefs();renderMe();sync('Merci ! Saisie de '+ymLab(o.dataset.dlok)+' signalée comme terminée')},true);
+async function loadAccList(){if(!REMOTE||!sb||!canAdmin)return;const {data,error}=await sb.from('profiles').select('id,email,display_name,role,active,doc_id,prefs');if(!error){ACC=data||[];renderDl()}}
+function renderDl(){if(!$('dlList'))return;const L=Object.entries(S.dl||{}).sort().reverse().slice(0,6);
+  $('dlList').innerHTML=L.length?L.map(([ym,due])=>{const docs=S.docs.filter(d=>!d.tmp),late=docs.filter(d=>!doneOf(ym,d.id));
+    const mails=late.map(d=>ACC.find(a=>a.doc_id===d.id&&a.active)?.email).filter(Boolean);
+    const url=location.origin+location.pathname,subj=`Planning de ${ymLab(ym)} : saisie avant le ${fD(due)}`,body=`Bonjour,\n\nMerci de saisir dans l'appli planning vos gardes, SSPI, DIVLD, indisponibilités et congés de ${ymLab(ym)} avant le ${fD(due)}, puis d'appuyer sur « J'ai terminé ».\n\n${url}\n\nMerci !`;
+    return `<div class="dlr"><div class="dlh"><b>${esc(cap(ymLab(ym)))}</b> · avant le ${esc(fD(due))}<button class="ib" data-dldel="${esc(ym)}" aria-label="Supprimer" style="height:32px;font-size:13px;margin-left:auto">✕</button></div>
+      <div class="dlg">${docs.map(d=>{const ok=doneOf(ym,d.id),n=entered(ym,d.id);return `<span class="${ok?'ok':''}">${ok?'✓':'…'} ${esc(d.name)} <small>${n} j</small></span>`}).join('')}</div>
+      ${late.length?`<div class="acts"><a class="tb" href="mailto:?bcc=${encodeURIComponent(mails.join(','))}&subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}">Relancer par e-mail les ${late.length} en retard</a></div>`:'<p class="note" style="margin:6px 0 0;color:var(--ok)">Tout le monde a terminé : vous pouvez lancer la répartition.</p>'}${REMOTE&&late.length&&mails.length<late.length?'<p class="note" style="margin:4px 0 0">Certains médecins n\'ont pas de compte relié : relancez-les autrement.</p>':''}</div>`}).join(''):'<p class="note">Aucune date limite fixée.</p>';
+  if(!$('dlM').value){const n=new Date(now.getFullYear(),now.getMonth()+1,1);$('dlM').value=ymd(n).slice(0,7)}}
+$('dlAdd').onclick=()=>{const ym=$('dlM').value,due=$('dlD').value;if(!/^\d{4}-\d{2}$/.test(ym)){$('dlM').focus();return}if(!/^\d{4}-\d{2}-\d{2}$/.test(due)){$('dlD').focus();return}S.dl=S.dl||{};S.dl[ym]=due;save();renderDl();sync('Date limite enregistrée : chacun verra le rappel')};
+$('dlList').addEventListener('click',e=>{const b=e.target.closest('[data-dldel]');if(!b||!twoTap(b,'Sûr ?'))return;delete S.dl[b.dataset.dldel];save();renderDl()});
 // ===== Sélection de plusieurs jours (Mon planning) =====
 let msel=null,mmode='r';
-function mselPaint(){const on=!!msel;document.body.classList.toggle('msel-on',on);$('mBar').hidden=!on;$('mMulti').hidden=on||!DOC(U.me)||!mayEdit(U.me);$('mPer').hidden=on||!DOC(U.me)||!mayEdit(U.me);
-  if(!on)return;const n=msel.size;$('mBarN').textContent=n?n+' jour'+(n>1?'s':'')+' sélectionné'+(n>1?'s':''):'Touchez les jours à corriger';$('mBarGo').disabled=!n;
-  document.querySelectorAll('#agenda [data-k],#agenda [data-sel]').forEach(e=>e.classList.toggle('picked',msel.has(e.dataset.k||e.dataset.sel)))}
+const mk=(k,d)=>k+'|'+d,mkS=x=>x.split('|');
+function mselPaint(){const on=!!msel;document.body.classList.toggle('msel-on',on);$('mBar').hidden=!on;const meOk=!!DOC(U.me)&&mayEdit(U.me);$('mMulti').hidden=on||!meOk;$('mPer').hidden=on||!meOk;
+  $('gMulti').hidden=!canEdit;$('gMulti').setAttribute('aria-pressed',on);
+  if(!on)return;const n=msel.size,docs=new Set([...msel].map(x=>mkS(x)[1]));$('mBarN').textContent=n?n+' case'+(n>1?'s':'')+' sélectionnée'+(n>1?'s':'')+(docs.size>1?' ('+docs.size+' médecins)':''):(tab==='Team'?'Touchez les cases à corriger':'Touchez les jours à corriger');$('mBarGo').disabled=!n;
+  document.querySelectorAll('#agenda [data-k],#agenda [data-sel]').forEach(e=>e.classList.toggle('picked',msel.has(mk(e.dataset.k||e.dataset.sel,U.me))));
+  document.querySelectorAll('#board [data-k][data-d]').forEach(e=>e.classList.toggle('picked',msel.has(mk(e.dataset.k,e.dataset.d))))}
 $('mMulti').onclick=()=>{msel=new Set();mselPaint()};
+$('gMulti').onclick=()=>{msel=msel?null:new Set();brush=null;render();mselPaint()};
 $('mBarX').onclick=()=>{msel=null;mselPaint()};
-$('agenda').addEventListener('click',e=>{if(!msel)return;const b=e.target.closest('[data-k],[data-sel]');if(!b||b.disabled)return;e.stopImmediatePropagation();e.preventDefault();const k=b.dataset.k||b.dataset.sel;msel.has(k)?msel.delete(k):msel.add(k);mselPaint()},true);
-function multiOpts(){const d=U.me,posts=S.posts.filter(p=>allowed(p)&&(canAdmin||isSec&&DOC(d)?.tmp||!p.auto));
-  $('dMultiT').textContent=msel.size+' jour'+(msel.size>1?'s':'')+' : '+[...msel].sort().map(k=>D(k).getDate()+' '+MOS[D(k).getMonth()]).join(', ');
-  $('mModeN').textContent=mmode==='r'?'Le poste choisi remplace ce qui était saisi ces jours-là'+(canAdmin?'.':' (le bloc et la consultation posés par l\'administrateur sont gardés).'):'Le poste choisi s\'ajoute à ce qui est déjà saisi (ex. réunion, garde de nuit après une journée).';
+document.body.appendChild($('mBar'));
+$('agenda').addEventListener('click',e=>{if(!msel)return;const b=e.target.closest('[data-k],[data-sel]');if(!b||b.disabled)return;e.stopImmediatePropagation();e.preventDefault();const x=mk(b.dataset.k||b.dataset.sel,U.me);msel.has(x)?msel.delete(x):msel.add(x);mselPaint()},true);
+$('board').addEventListener('click',e=>{if(!msel)return;const b=e.target.closest('[data-k][data-d]');e.stopImmediatePropagation();e.preventDefault();if(!b)return;if(!mayEdit(b.dataset.d)){sync('Vous ne pouvez modifier que votre ligne',true);return}const x=mk(b.dataset.k,b.dataset.d);msel.has(x)?msel.delete(x):msel.add(x);mselPaint()},true);
+const mselDocs=()=>[...new Set([...msel].map(x=>mkS(x)[1]))];
+function multiOpts(){const ds=mselDocs(),posts=S.posts.filter(p=>allowed(p)&&(canAdmin||ds.every(d=>isSec&&DOC(d)?.tmp)||!p.auto));
+  const L=[...msel].map(mkS).sort();$('dMultiT').textContent=msel.size+' case'+(msel.size>1?'s':'')+' : '+L.slice(0,8).map(([k,d])=>(ds.length>1?(DOC(d)?.name||d)+' ':'')+D(k).getDate()+' '+MOS[D(k).getMonth()]).join(', ')+(L.length>8?'…':'');
+  $('mModeN').textContent=mmode==='r'?'Le poste choisi remplace ce qui était saisi'+(canAdmin?'.':' (le bloc et la consultation posés par l\'administrateur sont gardés).'):'Le poste choisi s\'ajoute à ce qui est déjà saisi (ex. réunion, garde de nuit après une journée).';
   $('mOpts').innerHTML=`<div class="opts">${posts.map(p=>`<button class="opt" data-mp="${esc(p.id)}" style="${tint(esc(col(p)))}"><span><b>${esc(p.code)}</b><small style="display:block;font-weight:400;font-size:12px;line-height:1.2">${esc(p.label)}</small></span></button>`).join('')}</div>`}
 $('mBarGo').onclick=()=>{if(!msel||!msel.size)return;multiOpts();$('dMulti').showModal()};
 $('mMode').addEventListener('click',e=>{const b=e.target.closest('[data-mm]');if(!b)return;mmode=b.dataset.mm;for(const x of $('mMode').children)x.setAttribute('aria-pressed',x===b);multiOpts()});
-function multiDone(msg){save();$('dMulti').close();msel=null;render();if(tab==='Me')renderMe();sync(msg)}
-$('mOpts').addEventListener('click',e=>{const b=e.target.closest('[data-mp]');if(!b||!msel)return;const d=U.me,pid=b.dataset.mp;if(!mayEdit(d))return;
-  for(const k of msel){if(mmode==='r'){const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null)}
+function multiDone(msg){save();$('dMulti').close();msel=null;render();if(tab==='Me')renderMe();mselPaint();sync(msg)}
+$('mOpts').addEventListener('click',e=>{const b=e.target.closest('[data-mp]');if(!b||!msel)return;const pid=b.dataset.mp;
+  for(const [k,d] of [...msel].map(mkS)){if(!mayEdit(d))continue;if(mmode==='r'){const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null)}
     if(!ids(get(k,d)).includes(pid))setCell(k,d,pid)}
-  multiDone(msel.size+' jour(s) modifié(s) : '+(P(pid)?.label||pid))});
-$('mErase').onclick=()=>{const b=$('mErase');if(!msel||!twoTap(b,'Confirmer l\'effacement'))return;const d=U.me,n=msel.size;
-  for(const k of msel){const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null);pruneNotes(k,d)}
-  b.dataset.sure='';b.textContent='Effacer ces jours';b.style.fontSize='';multiDone(n+' jour(s) effacé(s)')};
+  multiDone(msel.size+' case(s) modifiée(s) : '+(P(pid)?.label||pid))});
+$('mErase').onclick=()=>{const b=$('mErase');if(!msel||!twoTap(b,'Confirmer l\'effacement'))return;const n=msel.size;
+  for(const [k,d] of [...msel].map(mkS)){if(!mayEdit(d))continue;const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null);pruneNotes(k,d)}
+  b.dataset.sure='';b.textContent='Effacer ces jours';b.style.fontSize='';multiDone(n+' case(s) effacée(s)')};
 $('dMulti').addEventListener('close',()=>{const b=$('mErase');b.dataset.sure='';b.textContent='Effacer ces jours';b.style.fontSize=''});
 // ===== Échanges entre collègues =====
 let SW=[],SWE={},HASSW=true,swScope='me',swTodo0=0;
@@ -1471,7 +1519,7 @@ function buildPrint(){
   $('printArea').innerHTML=h;
 }
 $('mPer').onclick=()=>$('perBtn').click();
-function startApp(){
+function startApp(){setTimeout(mselPaint);
   applySkin();
   document.body.classList.remove('authing');$('auth').hidden=true;
   document.body.classList.toggle('ro',!canEdit);document.body.classList.toggle('noadm',!canAdmin);document.body.classList.toggle('loc',!REMOTE);
@@ -1492,7 +1540,7 @@ async function pushRemote(){
   for(const [k,ds] of Object.entries(dels)){const {error}=await sb.from('assignments').delete().eq('day',k).in('doc_id',ds);if(error)err=error}
   if(!err){base=clone(S.plan);baseN=clone(S.notes||{})}
   if(!err&&canAdmin&&cfgOf(S)!==baseCfg){
-    const at=new Date().toISOString(),data={docs:S.docs,posts:S.posts,rooms:S.rooms,closures:S.closures,zone:S.zone,minH:S.minH,dayH:S.dayH,autoRS:S.autoRS};
+    const at=new Date().toISOString(),data={docs:S.docs,posts:S.posts,rooms:S.rooms,closures:S.closures,zone:S.zone,dl:S.dl,minH:S.minH,dayH:S.dayH,autoRS:S.autoRS};
     const r=await sb.from('service_state').update({data,updated_at:at,updated_by:prof.id}).eq('id',1).eq('updated_at',lastAt).select('updated_at');
     if(r.error)err=r.error;else if(!r.data.length){await pull();return sync('Les réglages avaient été modifiés sur un autre appareil : version la plus récente rechargée.',true)}
     else{lastAt=r.data[0].updated_at;baseCfg=cfgOf(S)}
@@ -1532,7 +1580,7 @@ async function afterLogin(){
   if(!p.active){await sb.auth.signOut();return showAuth('Votre compte n\'est pas encore activé. Demandez à l\'administrateur du planning de l\'activer.')}
   U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';isSec=p.role==='secretary';if(p.doc_id&&!isSec)U.me=p.doc_id;else if(!canAdmin&&!isSec)U.me='';
   $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':isSec?'secrétaire':'membre');
-  await pull();startApp();sync('À jour');loadAccts();loadSwaps();
+  await pull();startApp();sync('À jour');loadAccts();loadSwaps();loadAccList();
   sb.channel('planning')
    .on('postgres_changes',{event:'*',schema:'public',table:'swaps'},()=>loadSwaps())
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
@@ -1567,7 +1615,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.3 (27 nov.)';
+const APPV='2027.4 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
