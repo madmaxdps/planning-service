@@ -521,9 +521,9 @@ table.g2{border-collapse:separate;border-spacing:0}
 .vwa .r.td .dy b{border-radius:50%;background:var(--acc);color:#fff;font-size:16px}
 .vwa .ps{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
 .vwa .p{display:flex;align-items:center;gap:8px;border-radius:10px;padding:7px 10px;box-shadow:inset 3px 0 0 var(--c)}
-.vwa .p b{font-size:11px;font-weight:800;letter-spacing:.03em;flex:none;min-width:34px}
-.vwa .p em{font-style:normal;font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
-.vwa .p em small{display:block;font-size:11.5px;font-weight:500;color:var(--mut)}
+.vwa .p b{font-size:11px;font-weight:800;letter-spacing:.03em;flex:none;background:rgb(255 255 255/.22);border-radius:6px;padding:1px 5px}
+.vwa .p em{font-style:normal;font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vwa .p em small{display:block;font-size:11.5px;font-weight:500;opacity:.85}
 .vwa .p u{text-decoration:none;font-size:12.5px;font-weight:600;flex:none;font-variant-numeric:tabular-nums}
 .vwa .p.free{background:none;box-shadow:none;border:1.5px dashed var(--line);color:var(--mut);font-weight:500;font-size:13.5px}
 .vwa .wr{font-size:12px;color:var(--red);font-weight:600}
@@ -545,15 +545,15 @@ table.g2{border-collapse:separate;border-spacing:0}
 .vwb .now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:3}
 .vwc{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .vwc .t{border:0;font:inherit;text-align:left;border-radius:18px;padding:11px 13px;min-height:116px;display:flex;flex-direction:column;cursor:pointer;background:var(--card);box-shadow:inset 4px 0 0 var(--c,transparent),var(--shadow)}
-.vwc .t .d{font-size:12.5px;font-weight:600;color:var(--mut);display:flex;justify-content:space-between;align-items:center;gap:4px}
+.vwc .t .d{font-size:12.5px;font-weight:600;opacity:.9;display:flex;justify-content:space-between;align-items:center;gap:4px}
 .vwc .t .c{font-size:25px;font-weight:800;margin-top:auto;line-height:1.1;letter-spacing:-.01em}
 .vwc .t .c small{font-size:15px}
-.vwc .t .l{font-size:12.5px;font-weight:500;color:var(--ink);margin-top:2px}
-.vwc .t .x{margin-top:6px;font-size:11.5px;font-weight:600;color:var(--mut);font-variant-numeric:tabular-nums}
+.vwc .t .l{font-size:12.5px;font-weight:500;opacity:.95;margin-top:2px}
+.vwc .t .x{margin-top:6px;font-size:11.5px;font-weight:600;opacity:.9;font-variant-numeric:tabular-nums}
 .vwc .t.td{box-shadow:inset 4px 0 0 var(--c,transparent),0 0 0 2px var(--acc)}
-.vwc .t.free{background:transparent;box-shadow:none;border:1.5px dashed var(--line);color:var(--mut)}
+.vwc .t.free{background:transparent;box-shadow:none;opacity:1;border:1.5px dashed var(--line);color:var(--mut)}
 .vwc .t.free .c{font-size:18px;font-weight:600}
-.vwc .t.s{cursor:default;justify-content:center;background:var(--card)}.vwc .t.s .c{color:var(--acc)}
+.vwc .t.s{cursor:default;justify-content:center;background:var(--card);color:var(--ink)}.vwc .t.s .c{color:var(--acc)}
 .vwd{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding-bottom:2px}
 .vwd .ax{display:flex;justify-content:space-between;margin:0 10px 0 58px;font-size:10.5px;color:var(--mut);font-weight:600;padding-top:10px}
 .vwd .r{display:flex;align-items:center;gap:8px;padding:6px 10px;border:0;border-bottom:1px solid var(--line);background:none;width:100%;font:inherit;color:inherit;cursor:pointer;text-align:left}
@@ -567,6 +567,25 @@ table.g2{border-collapse:separate;border-spacing:0}
 .vwd .tg{position:absolute;right:3px;top:-6px;font-size:9px;font-weight:800;border-radius:5px;padding:0 4px;outline:1.5px solid var(--card)}
 .vwd .lg{display:flex;flex-wrap:wrap;gap:6px 12px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--mut)}
 .vwd .lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+/* Bandeau sobre (27/11) : plus de dégradé en haut */
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) body{background:var(--bg)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mehead h1,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header h1,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabSet h1{color:var(--ink)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header h1 small,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #hint,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .sync{color:var(--mut)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mehead .ib,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header .ib,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header .tb{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .who{background:color-mix(in srgb,var(--acc) 10%,var(--card));color:var(--acc)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg{background:color-mix(in srgb,var(--ink) 7%,var(--bg))}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg button,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg button{color:var(--mut)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg button[aria-pressed=true],:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgb(15 23 42/.12)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .teamlink{background:var(--card);color:var(--acc)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dchip.on{background:var(--acc);color:#fff}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .fab,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dcard .tag{background:var(--acc);color:#fff}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .fab{box-shadow:0 8px 20px color-mix(in srgb,var(--acc) 35%,transparent)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .tabs button[aria-pressed=true] svg{background:var(--acc)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .sumc{background:var(--card)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .sumc .bigh{background:none;color:var(--acc)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .cc.td{box-shadow:inset 0 0 0 2px var(--acc)}
+#mTitle{font-size:22px!important;line-height:1.2}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dcard.today{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--acc)}
 </style>
 </head>
 <body>
@@ -1176,7 +1195,7 @@ function calB(days){
   const v=[...new Set(days.map(vacOf).filter(Boolean))],f=days.filter(isFer);
   return v.length||f.length?`<div class="calb">${v.map(n=>`<span class="vch">${esc(n)}${S.zone&&S.zone!=='-'?' · zone '+esc(S.zone):''}</span>`).join('')}${f.map(k=>`<span class="fch">Férié · ${esc(ferName(k))} (${DW[D(k).getDay()]}. ${D(k).getDate()})</span>`).join('')}</div>`:'';
 }
-const tn=c=>`--c:${esc(c)};background:color-mix(in srgb,${esc(c)} 14%,var(--card));color:color-mix(in srgb,${esc(c)} 58%,var(--ink))`;
+const tn=c=>`--c:${esc(c)};background:${esc(c)};color:${fg(c)}`;
 const pT=v=>{const m=String(v||'').match(/(\d{1,2})[:h](\d{2})?\s*[–-]\s*(\d{1,2})[:h]?(\d{2})?/);if(!m)return null;const a=+m[1]+(+m[2]||0)/60;let b=+m[3]+(+m[4]||0)/60;if(b<=a)b+=24;return [a,b]};
 const spanOf=(p,k)=>{if(p.cat==='garde'){return pT(isWE(k)?p.t:p.tn)||(isWE(k)?[8.5,32.5]:[18.5,32.5])}return pT(p.t)};
 const carry=(k,d)=>{const y=addD(k,-1);return PS(y,d).map(p=>({p,s:spanOf(p,y)})).filter(o=>o.s&&o.s[1]>24).map(o=>({p:o.p,b:o.s[1]-24}))};
@@ -1197,7 +1216,7 @@ function wB(days,d){const PX=19;let h=`<div class="vwb"><div class="hd"><span></
   return h+'</div></div>'}
 function wC(days,d){const w=weekH(days[0],d),ng=days.filter(k=>has(k,d,'garde')).length;
   return `<div class="vwc">${days.map(k=>{const dd=D(k),ps=PS(k,d),p=ps.find(x=>x.cat!=='autre')||ps[0],q=ps.filter(x=>x!==p),c=p?col(p):'';
-  return `<button class="t${k===TK?' td':''}${p?'':' free'}" data-k="${k}" style="${p?tn(c):''}"><span class="d"><span>${cap(DW[dd.getDay()])}. ${dd.getDate()}</span>${isFer(k)?`<i class="fch">${esc(ferName(k))}</i>`:''}</span><span class="c">${p?esc(p.code):'Libre'}${q.length?` <small>+ ${q.map(x=>`<span style="color:${esc(col(x))}">${esc(x.code)}</span>`).join(' + ')}</small>`:''}</span>${p?`<span class="l">${esc([p,...q].map(x=>x.label).join(' · '))}</span>`:''}${p&&tOf(p,k)?`<span class="x">${esc([p,...q].map(x=>tOf(x,k)).filter(Boolean).join(' · '))}</span>`:''}</button>`}).join('')}<div class="t s"><span class="d">Semaine ${isoW(days[0])}</span><span class="c">${w.h} h</span><span class="l">${ng} garde${ng>1?'s':''} · repère ${w.target} h${w.h>=w.target?' ✓':''}</span></div></div>`}
+  return `<button class="t${k===TK?' td':''}${p?'':' free'}" data-k="${k}" style="${p?tn(c):''}"><span class="d"><span>${cap(DW[dd.getDay()])}. ${dd.getDate()}</span>${isFer(k)?`<i class="fch">${esc(ferName(k))}</i>`:''}</span><span class="c">${p?esc(p.code):'Libre'}${q.length?` <small>+ ${q.map(x=>esc(x.code)).join(' + ')}</small>`:''}</span>${p?`<span class="l">${esc([p,...q].map(x=>x.label).join(' · '))}</span>`:''}${p&&tOf(p,k)?`<span class="x">${esc([p,...q].map(x=>tOf(x,k)).filter(Boolean).join(' · '))}</span>`:''}</button>`}).join('')}<div class="t s"><span class="d">Semaine ${isoW(days[0])}</span><span class="c">${w.h} h</span><span class="l">${ng} garde${ng>1?'s':''} · repère ${w.target} h${w.h>=w.target?' ✓':''}</span></div></div>`}
 function wD(days,d){const L=x=>x/24*100,used=new Map();let h=`<div class="vwd"><div class="ax"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>`;
   for(const k of days){const dd=D(k);let e='',st=0;const ev=(p,a,b,t,cl)=>{used.set(p.id,p);return `<span class="ev${cl||''}" style="left:${L(a)}%;width:${L(b-a)}%;${tn(col(p))}">${t}</span>`};
     for(const o of carry(k,d)){e+=ev(o.p,0,o.b,esc(o.p.code));st=Math.max(st,o.b)}
@@ -1243,7 +1262,7 @@ function renderMe(){
   for(const b of $('mView').children)b.setAttribute('aria-pressed',b.dataset.v===mv);
   for(const b of $('wvs').children)b.setAttribute('aria-pressed',b.dataset.wv===(U.wv||'A'));
   if(mv==='m'){const [y,m]=meM.split('-').map(Number);$('mTitle').textContent=cap(MO[m-1])+' '+y}
-  else{const e=addD(meW,6),a=D(meW),z=D(e);$('mTitle').textContent='Semaine du '+a.getDate()+(a.getMonth()!==z.getMonth()?' '+MOS[a.getMonth()]:'')+' au '+z.getDate()+' '+MOS[z.getMonth()]}
+  else{const e=addD(meW,6),a=D(meW),z=D(e);$('mTitle').textContent='Du '+a.getDate()+(a.getMonth()!==z.getMonth()?' '+MOS[a.getMonth()]:'')+' au '+z.getDate()+' '+MOS[z.getMonth()]}
   $('mPrev').setAttribute('aria-label',mv==='m'?'Mois précédent':'Semaine précédente');$('mNext').setAttribute('aria-label',mv==='m'?'Mois suivant':'Semaine suivante');
   $('mWarn').innerHTML='';
   if(!me&&REMOTE&&!canAdmin&&!isSec){$('mPick').innerHTML='<h2>Compte pas encore relié</h2><p class="note">Votre compte n\'est pas encore relié à une ligne du planning. Demandez à l\'administrateur de le faire dans Réglages, Comptes.</p>';return}
