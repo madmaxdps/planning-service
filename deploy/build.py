@@ -18,7 +18,7 @@ csp = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 
        "worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'")
 if out.exists(): shutil.rmtree(out)
 out.mkdir(parents=True)
-for f in ['manifest.webmanifest','sw.js','icon.svg','icon-192.png','icon-512.png','apple-touch-icon.png','supabase.js','591.supabase.js']:
+for f in ['manifest.webmanifest','sw.js','icon.svg','icon-192.png','icon-512.png','apple-touch-icon.png','supabase.js']:
     shutil.copy(src / f, out / f)
 h = (src / 'index.html').read_text()
 assert h.count("const CFG={url:'',key:''};") == 1

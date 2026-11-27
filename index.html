@@ -2,6 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://rtnnmrkjeogftfbzjvjz.supabase.co wss://rtnnmrkjeogftfbzjvjz.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Planning de service</title>
 <meta name="theme-color" content="#f2f3f7" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
@@ -505,7 +507,7 @@ table.g2{border-collapse:separate;border-spacing:0}
 <script>
 {
 // Connexion Supabase : laisser vide pour un usage local sur un seul appareil.
-const CFG={url:'',key:''};
+const CFG={url:"https://rtnnmrkjeogftfbzjvjz.supabase.co",key:"sb_publishable_R0K5nCstZX-KOe9o3OY2AQ_2xqUDfV6"};
 const KEY='planning-service-v1';
 const CATS={travail:'Travail',garde:'Garde',astreinte:'Astreinte',repos:'Repos',absence:'Absence',indispo:'Indisponibilité',autre:'Autre (cumulable)'};
 const DEF_POSTS=[
