@@ -524,6 +524,7 @@ table.g2{border-collapse:separate;border-spacing:0}
 <details class="remote">
   <summary>Mon compte</summary>
   <p id="acct"></p>
+  <p class="note" id="appv"></p>
   <div class="acts"><button class="tb" id="chPw">Changer mon mot de passe</button><button class="tb" id="logout">Se déconnecter</button></div>
 </details>
 </section>
@@ -1112,7 +1113,13 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
+const APPV='2027.1 (27 nov.)';
+if('serviceWorker' in navigator&&location.protocol==='https:'){try{
+  const had=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r.update()})}).catch(()=>{})
+}catch(e){}}
+{const v=document.getElementById('appv');if(v)v.textContent='Version '+APPV}
 }
 </script>
 <div id="printArea" aria-hidden="true"></div>

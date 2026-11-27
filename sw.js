@@ -1,5 +1,5 @@
 // Cache hors ligne : l'appli s'ouvre sans réseau. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = 'planning-service-v11';
+const VERSION = 'planning-service-v12';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './supabase.js'];
 const CDN = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -12,7 +12,7 @@ self.addEventListener('fetch', e => {
   if (!same && !CDN.includes(u.hostname)) return; // API Supabase : jamais en cache
   if (same) {
     // Réseau d'abord pour l'appli (mises à jour immédiates), cache si hors ligne
-    e.respondWith(fetch(e.request).then(res => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then(c => c.put(e.request, cp)); } return res; })
+    e.respondWith(fetch(u.href, { cache: 'no-cache', credentials: 'same-origin' }).then(res => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then(c => c.put(e.request, cp)); } return res; })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
   } else {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => { const cp = res.clone(); caches.open(VERSION).then(c => c.put(e.request, cp)); return res; })));
