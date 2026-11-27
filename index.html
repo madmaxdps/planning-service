@@ -347,6 +347,28 @@ table.g2{border-collapse:separate;border-spacing:0}
 .prow{display:flex!important;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}.prow>input[type=color]{flex:0 0 44px}.prow>[data-f=code]{flex:0 0 64px}.prow>[data-f=label]{flex:1 1 140px}.prow>select{flex:1 1 130px}.prow .nl{flex:0 0 64px}.prow .nl span{display:block;font-size:11px;color:var(--mut)}.prow.ph{display:none!important}.prow>.nt{flex:1 1 220px}.prow>.pdays,.prow>.pext{flex:0 1 auto}
 .itag{font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.3px}
 .drow .tmpk{margin:0;font-size:13px;white-space:nowrap}
+.teamlink{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:16px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px;margin:0 0 12px;font:inherit;font-weight:600;color:var(--acc);cursor:pointer}
+#printArea{display:none}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff!important;color:#000}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;font:9pt/1.2 Inter,Arial,sans-serif;color:#000}
+  #printArea h1{font-size:14pt;margin:0 0 6px}
+  .pt{width:100%;border-collapse:collapse;table-layout:fixed}
+  .pt th,.pt td{border:1px solid #999;padding:2px;text-align:center;vertical-align:middle}
+  .pt thead th{font-size:8pt;background:#eee}
+  .pt tbody th{text-align:left;width:22mm;font-size:8.5pt;white-space:nowrap;overflow:hidden}
+  .pt thead th:first-child{width:26mm}.pt.pw thead th:first-child{width:34mm}
+  .pt.pw td{height:14mm}
+  .pt td.we,.pt th.we{background:#f1f1f1}
+  .pt td span{display:block;border-radius:3px;margin:1px 0;padding:1px 2px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .pt.pm td span{font-size:6.5pt;padding:1px 0}
+  .pt.pw td{height:12mm}.pt.pw td span{font-size:8pt}
+  .pt tr{page-break-inside:avoid}
+  .lg{margin:6px 0 0;font-size:7.5pt;display:flex;flex-wrap:wrap;gap:3px 12px}.lg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ft{font-size:7pt;color:#555;margin:4px 0 0}
+}
 </style>
 </head>
 <body>
@@ -378,6 +400,7 @@ table.g2{border-collapse:separate;border-spacing:0}
   </div>
   <div class="seg mseg" id="mView"><button data-v="w" aria-pressed="true">Semaine</button><button data-v="m" aria-pressed="false">Mois</button></div>
   <div id="mWarn"></div>
+  <button class="teamlink" id="mTeam">Voir le planning de toute l'équipe<svg class="ico" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
   <div id="mPick" hidden><h2>Qui êtes-vous ?</h2><p class="note">Choisissez votre nom pour afficher votre planning.</p><div class="opts" id="mPickL"></div></div>
   <div id="agenda"></div>
   <button class="fab" id="mPer" aria-label="Saisir une période (vacances, congés…)"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Période</button>
@@ -389,6 +412,7 @@ table.g2{border-collapse:separate;border-spacing:0}
   <button class="ib" id="prev" aria-label="Période précédente">‹</button>
   <button class="tb" id="today">Auj.</button>
   <button class="ib" id="next" aria-label="Période suivante">›</button>
+  <button class="tb" id="printBtn" title="Imprimer le planning de l'équipe (semaine ou mois affiché)">Imprimer</button>
 </header>
 <div class="pal" id="pal" role="toolbar" aria-label="Pinceaux"></div>
 <p class="hint" id="hint"></p>
@@ -949,6 +973,20 @@ $('mView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(
 $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
 $('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
+$('mTeam').onclick=()=>showTab('Team');
+$('printBtn').onclick=()=>{buildPrint();setTimeout(()=>window.print(),50)};
+function buildPrint(){
+  const days=range(),wk=days.length<=7,used=new Set();
+  const title=wk?'Planning de l\'équipe · semaine du '+D(days[0]).getDate()+' '+MO[D(days[0]).getMonth()]+' au '+D(days[6]).getDate()+' '+MO[D(days[6]).getMonth()]+' '+D(days[6]).getFullYear():'Planning de l\'équipe · '+MO[D(days[0]).getMonth()]+' '+D(days[0]).getFullYear();
+  let h=`<h1>${esc(title)}</h1><table class="pt ${wk?'pw':'pm'}"><thead><tr><th></th>${days.map(k=>{const d=D(k);return `<th class="${isWE(k)?'we':''}">${wk?cap(DW[d.getDay()])+'<br>':DW[d.getDay()].charAt(0).toUpperCase()+'<br>'}${d.getDate()}${wk?' '+MOS[d.getMonth()]:''}</th>`}).join('')}</tr></thead><tbody>`;
+  for(const doc of S.docs){h+=`<tr><th>${esc(doc.name)}${doc.tmp?' <small>(intérim)</small>':''}${(+doc.pct||100)<100?' <small>'+doc.pct+' %</small>':''}</th>`;
+    for(const k of days){const ps=PS(k,doc.id);ps.forEach(p=>used.add(p.id));h+=`<td class="${isWE(k)?'we':''}">${ps.map(p=>`<span style="background:${esc(col(p))};color:${fg(col(p))}">${esc(wk?p.label.length>14?p.code:p.label:p.code)}${p.cat==='garde'&&wk?(isWE(k)?' 24 h':' nuit'):''}</span>`).join('')}</td>`}
+    h+='</tr>'}
+  h+='</tbody></table>';
+  const lg=S.posts.filter(p=>used.has(p.id));const rooms=openRooms();
+  h+=`<p class="lg">${lg.map(p=>`<span><i style="background:${esc(col(p))}"></i>${esc(p.code)} : ${esc(p.label)}</span>`).join('')}</p>${rooms.length?`<p class="lg">Salles ouvertes : ${rooms.map(esc).join(', ')}</p>`:''}<p class="ft">Imprimé le ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}</p>`;
+  $('printArea').innerHTML=h;
+}
 $('mPer').onclick=()=>$('perBtn').click();
 function startApp(){
   applySkin();
@@ -1043,5 +1081,6 @@ boot();
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
 }
 </script>
+<div id="printArea" aria-hidden="true"></div>
 </body>
 </html>
