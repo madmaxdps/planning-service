@@ -769,7 +769,7 @@ table.g2{border-collapse:separate;border-spacing:0}
   <h2 id="dCellT"></h2>
   <div id="dOpts"></div>
   <div id="dNote"></div>
-  <div class="acts"><button class="tb" id="dSwap" hidden>⇄ Échange</button></div>
+  <div class="acts"><button class="tb" id="dSwap" hidden>⇄ Échange</button></div><p class="note" id="dSwN" style="color:var(--red);margin:4px 0 0"></p>
   <div class="acts"><button class="tb" id="dClear">Tout retirer</button><span style="flex:1"></span><button class="tb" id="dClose" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700;min-width:120px">Terminé</button></div>
 </dialog>
 <dialog id="dSw" class="sheet">
@@ -1082,7 +1082,7 @@ function cellOpts(){
 function openCell(k,d){
   openC={k,d};const dd=D(k);
   $('dCellT').textContent=(d===U.me?'':DOC(d).name+' · ')+dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  cellOpts();$('dSwap').hidden=!(d===U.me&&swOk()&&swPosts(k,d).length);$('dCell').showModal();
+  cellOpts();$('dSwap').hidden=!(d===U.me&&!isSec);$('dSwN').textContent='';$('dCell').showModal();
 }
 $('dOpts').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;setCell(openC.k,openC.d,b.dataset.p);save();cellOpts();render()});
 const t2h=v=>v?String(+v.slice(0,2))+':'+v.slice(3,5):'',h2t=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?pad(+m[1])+':'+m[2]:''};
@@ -1424,22 +1424,30 @@ async function pushRefresh(){
   if(tab==='Me'&&typeof renderMe==='function')renderMe();
 }
 async function fnCall(action,auth,extra){const h={'Content-Type':'application/json',apikey:CFG.key};if(auth){const {data}=await sb.auth.getSession();if(data?.session)h.Authorization='Bearer '+data.session.access_token}
-  const r=await fetch(FN(),{method:'POST',headers:h,body:JSON.stringify({action,...(extra||{})})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Service de notifications indisponible ('+r.status+') : la fonction « rappels » est-elle installée ?'));return j}
+  let r;try{r=await fetch(FN(),{method:'POST',headers:h,body:JSON.stringify({action,...(extra||{})})})}catch(e){throw new Error('Impossible de joindre le service de notifications : vérifiez la connexion, et que la fonction « rappels » est bien déployée dans Supabase.')}let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Service de notifications indisponible (erreur '+r.status+(r.status===401?' : désactivez « Enforce JWT Verification » dans la fonction rappels':r.status===404?' : la fonction « rappels » est introuvable dans Supabase':'')+')'));return j}
+const TO=(pr,ms,msg)=>Promise.race([pr,new Promise((_,j)=>setTimeout(()=>j(new Error(msg)),ms))]);
+const pInfo=(t,err)=>{const e=$('pushInfo');if(!e)return;e.textContent=t;e.style.color=err?'var(--red)':'';e.style.fontWeight=err?'600':''};
 async function pushEnable(){
-  const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('Notifications refusées : autorisez-les dans les réglages du téléphone.');
-  const {publicKey}=await fnCall('key');const r=await navigator.serviceWorker.ready;let sub=await r.pushManager.getSubscription();
+  pInfo('1/4 · Demande d\'autorisation au téléphone…');
+  const perm=await TO(Notification.requestPermission(),60000,'Pas de réponse à la demande d\'autorisation.');if(perm!=='granted')throw new Error('Notifications refusées : autorisez-les pour cette appli dans les réglages du téléphone (Notifications).');
+  pInfo('2/4 · Contact du service de notifications…');
+  const {publicKey}=await TO(fnCall('key'),20000,'Le service de notifications ne répond pas (fonction « rappels » dans Supabase).');
+  if(!publicKey)throw new Error('Réponse inattendue du service de notifications.');
+  pInfo('3/4 · Inscription de ce téléphone…');
+  const r=await TO(navigator.serviceWorker.ready,10000,'L\'appli n\'est pas prête : fermez-la complètement et rouvrez-la.');let sub=await r.pushManager.getSubscription();
   if(sub){const k=sub.options&&sub.options.applicationServerKey;if(k&&btoa(String.fromCharCode(...new Uint8Array(k))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')!==publicKey){await sub.unsubscribe();sub=null}}
-  if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(publicKey)});
+  if(!sub)sub=await TO(r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(publicKey)}),30000,'Le téléphone n\'a pas pu s\'inscrire aux notifications.');
+  pInfo('4/4 · Enregistrement…');
   const j=sub.toJSON();await sb.from('push_subs').delete().eq('endpoint',j.endpoint);
   const {error}=await sb.from('push_subs').insert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth});
   if(error&&error.code!=='23505')throw new Error('Enregistrement impossible : '+error.message);
 }
-$('pushOn').onclick=async()=>{const b=$('pushOn');b.disabled=true;try{await pushEnable();sync('Notifications activées sur ce téléphone');await pushRefresh()}catch(e){sync(e.message,true)}finally{b.disabled=false}};
-$('pushTest').onclick=async()=>{try{const j=await fnCall('test',true);sync(j.sent?'Notification de test envoyée':'Aucun appareil enregistré pour ce compte',!j.sent)}catch(e){sync(e.message,true)}};
+$('pushOn').onclick=async()=>{const b=$('pushOn');b.disabled=true;try{await pushEnable();sync('Notifications activées sur ce téléphone');await pushRefresh();pInfo('Activées sur ce téléphone. Touchez « Tester ».')}catch(e){pInfo('Échec : '+(e.message||e),true);sync(e.message,true)}finally{b.disabled=false}};
+$('pushTest').onclick=async()=>{pInfo('Envoi du test…');try{const j=await TO(fnCall('test',true),20000,'Le service de notifications ne répond pas.');const t=j.sent?'Notification de test envoyée : elle doit arriver dans quelques secondes.':j.failed?'Envoi refusé par le service du téléphone : touchez « Réactiver ».':'Aucun appareil enregistré pour ce compte.';pInfo(t,!j.sent);sync(t,!j.sent);if(!j.sent){$('pushOn').hidden=false;$('pushOn').textContent='Réactiver'}}catch(e){pInfo('Échec : '+(e.message||e),true);sync(e.message,true)}};
 $('pushSend').onclick=async()=>{const b=$('pushSend');if(!twoTap(b,'Confirmer l\'envoi'))return;try{const j=await fnCall('send',true);sync(`${j.sent||0} notification(s) envoyée(s) à ${j.users||0} médecin(s) en retard`)}catch(e){sync(e.message,true)}finally{b.dataset.sure='';b.textContent='Envoyer maintenant une notification aux retardataires';b.style.fontSize=''}};
 setTimeout(()=>pushRefresh().catch(()=>{}));
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data==='echanges'){loadSwaps();openSwL()}});
-$('agenda').addEventListener('click',e=>{const b=e.target.closest('[data-pushon]');if(!b)return;e.stopImmediatePropagation();if(PUSH==='install'){showTab('Set');return}$('pushOn').click()},true);
+$('agenda').addEventListener('click',e=>{const b=e.target.closest('[data-pushon]');if(!b)return;e.stopImmediatePropagation();showTab('Set');const i=$('pushInfo');if(i){const d=i.closest('details');if(d)d.open=true;setTimeout(()=>i.scrollIntoView({block:'center'}),60)}if(PUSH!=='install')$('pushOn').click()},true);
 // ===== Saisie du planning : dates limites, rappels, suivi =====
 let ACC=[];
 const ymLab=ym=>{const [y,m]=ym.split('-').map(Number);return MO[m-1]+' '+y};
@@ -1564,7 +1572,11 @@ $('fSw').onsubmit=async e=>{e.preventDefault();if(!swSt.to)return;
   const same=swSt.pb&&swSt.kb===swSt.k&&swSt.pb===swSt.pa;if(same){$('swErr').textContent='Vous avez le même poste ce jour-là : choisissez un autre jour.';return}
   const a={p_to:swSt.to,p_day_a:swSt.k,p_post_a:swSt.pa,p_day_b:swSt.pb?swSt.kb:null,p_post_b:swSt.pb||null,p_msg:$('swMsg').value.trim().slice(0,200)||null};
   $('swSend').disabled=true;try{const id=await swCall('propose_swap',a);swNotify(id);$('dSw').close();$('dCell').close();sync('Proposition envoyée à '+(DOC(a.p_to)?.name||'votre collègue'))}catch(err){$('swErr').textContent=err.message}finally{$('swSend').disabled=false}};
-$('dSwap').onclick=()=>openSwap(openC.k);
+const swWhyNot=k=>{if(REMOTE&&!HASSW)return 'Les échanges ne sont pas encore activés dans la base : l\'administrateur doit exécuter la mise à jour SQL des échanges.';
+  if(REMOTE&&(!prof||!prof.doc_id||U.me!==prof.doc_id))return 'Votre compte n\'est pas relié à votre ligne du planning : l\'administrateur doit la choisir dans Réglages › Comptes.';
+  if(!swPosts(k,U.me).length)return 'Rien à échanger ce jour-là : posez d\'abord votre garde ou votre poste, puis touchez Échange.';
+  if(!S.docs.some(d=>d.id!==U.me&&!d.tmp))return 'Aucun collègue titulaire dans l\'équipe pour l\'instant : les échanges se font entre médecins ayant un compte (pas avec les intérimaires).';return ''};
+$('dSwap').onclick=()=>{const w=swWhyNot(openC.k);if(w){$('dSwN').textContent=w;return}openSwap(openC.k)};
 function openSwL(){renderSwL();if(!$('dSwL').open)$('dSwL').showModal();if(REMOTE)loadSwaps()}
 $('mSw').onclick=openSwL;
 $('swScope').addEventListener('click',e=>{const b=e.target.closest('[data-sc]');if(!b)return;swScope=b.dataset.sc;for(const x of $('swScope').children)x.setAttribute('aria-pressed',x===b);renderSwL()});
@@ -1698,7 +1710,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.7 (27 nov.)';
+const APPV='2027.8 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
