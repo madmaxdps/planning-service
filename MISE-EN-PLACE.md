@@ -53,7 +53,7 @@ Pour chaque collègue :
 
 ## Secrétaires et intérimaires
 - **Secrétaire** : créez son compte comme pour un médecin, puis dans **Comptes** cochez « Activé », choisissez le rôle **Secrétaire** et ne lui attribuez aucune ligne. Elle voit tout le planning (Mon planning › « changer » pour afficher celui d'un médecin) et ne peut modifier que les lignes d'intérimaires.
-- **Intérimaire** : dans **Réglages › Équipe**, ajoutez une ligne (par exemple « Intérim 1 ») et cochez **Intérim**. Elle ne demande pas de compte, n'entre ni dans la répartition automatique ni dans l'équilibre sur 3 mois. Vous ou la secrétaire y placez les jours de remplacement.
+- **Intérimaire** : dans **Réglages › Équipe**, ajoutez une ligne (par exemple « Intérim 1 ») et cochez **Intérim**. Elle ne demande pas de compte et n'entre pas dans l'équilibre sur 3 mois. Lors de la répartition, les titulaires passent d'abord jusqu'à leur minimum hebdomadaire, puis les postes restants vont aux intérimaires disponibles (ligne vide ce jour-là ; posez IND quand ils ne sont pas là). Vous ou la secrétaire y saisissez aussi leurs gardes.
 
 ## Installer l'appli sur le téléphone
 - **iPhone** : ouvrez l'adresse dans Safari, puis Partager > « Sur l'écran d'accueil ».
