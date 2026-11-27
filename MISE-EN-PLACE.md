@@ -51,6 +51,10 @@ Pour chaque collègue :
 2. Dans l'appli, ouvrez **Réglages › Comptes**, cochez « Activé » et choisissez **sa ligne**.
 3. Envoyez-lui l'adresse de l'appli et son identifiant, puis le mot de passe **par un autre canal**, par exemple par SMS. À sa première connexion, l'appli lui demande d'en choisir un nouveau.
 
+## Secrétaires et intérimaires
+- **Secrétaire** : créez son compte comme pour un médecin, puis dans **Comptes** cochez « Activé », choisissez le rôle **Secrétaire** et ne lui attribuez aucune ligne. Elle voit tout le planning (Mon planning › « changer » pour afficher celui d'un médecin) et ne peut modifier que les lignes d'intérimaires.
+- **Intérimaire** : dans **Réglages › Équipe**, ajoutez une ligne (par exemple « Intérim 1 ») et cochez **Intérim**. Elle ne demande pas de compte, n'entre ni dans la répartition automatique ni dans l'équilibre sur 3 mois. Vous ou la secrétaire y placez les jours de remplacement.
+
 ## Installer l'appli sur le téléphone
 - **iPhone** : ouvrez l'adresse dans Safari, puis Partager > « Sur l'écran d'accueil ».
 - **Android** : ouvrez l'adresse dans Chrome, puis menu ⋮ > « Installer l'application ».

@@ -217,6 +217,47 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 alter table public.assignments replica identity full;
 
+-- 13. Rôle secrétaire : consulte tout le planning, ne modifie que les lignes d'intérimaires
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('admin','member','secretary'));
+create or replace function public.is_secretary() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'secretary' and active);
+$$;
+create or replace function public.is_interim(d text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.service_state s, jsonb_array_elements(coalesce(s.data->'docs','[]'::jsonb)) x
+                 where x->>'id' = d and coalesce((x->>'tmp')::boolean, false));
+$$;
+create or replace function public.guard_assignment() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare prev text; mine text;
+begin
+  if auth.uid() is null or public.is_admin() then
+    return case when tg_op = 'DELETE' then old else new end;
+  end if;
+  if public.is_secretary() then
+    if (tg_op <> 'INSERT' and not public.is_interim(old.doc_id)) or (tg_op <> 'DELETE' and not public.is_interim(new.doc_id)) then
+      raise exception 'Les secrétaires ne modifient que les lignes d''intérimaires';
+    end if;
+    return case when tg_op = 'DELETE' then old else new end;
+  end if;
+  mine := public.my_doc();
+  if tg_op = 'DELETE' then
+    if mine is null or old.doc_id is distinct from mine then raise exception 'Vous ne pouvez modifier que votre ligne'; end if;
+    if public.auto_parts(old.post_id) <> '' then raise exception 'Le bloc et la consultation sont gérés par l''administrateur'; end if;
+    return old;
+  end if;
+  if mine is null or new.doc_id is distinct from mine then raise exception 'Vous ne pouvez modifier que votre ligne'; end if;
+  if tg_op = 'UPDATE' and (new.day <> old.day or new.doc_id <> old.doc_id) then raise exception 'Modification interdite'; end if;
+  select post_id into prev from public.assignments where day = new.day and doc_id = new.doc_id;
+  if public.auto_parts(new.post_id) <> public.auto_parts(prev) then
+    raise exception 'Le bloc et la consultation sont gérés par l''administrateur';
+  end if;
+  return new;
+end $$;
+grant execute on function public.is_secretary(), public.is_interim(text) to authenticated;
+
 -- 11. APRÈS avoir créé votre propre compte (Authentication > Users > Add user),
 --     remplacez l'adresse et le nom ci-dessous, puis exécutez ces lignes seules.
 --     Ensuite, reliez chaque compte à sa ligne dans l'appli (Réglages > Comptes).

@@ -76,7 +76,7 @@ details{border-top:1px solid var(--line);padding:12px 0}
 summary{cursor:pointer;font-weight:700;min-height:32px}
 .ed{display:grid;gap:8px;margin-top:10px}
 .prow{display:grid;grid-template-columns:44px 64px minmax(0,1fr) 120px 56px minmax(120px,1.2fr) 56px 56px 52px 44px;gap:6px;align-items:center}
-.drow{display:grid;grid-template-columns:minmax(0,1fr) 104px 44px;gap:6px}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 96px auto 44px;gap:6px;align-items:center}
 .ed input[type=text],.ed input[type=number],.ed select{height:40px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--bg);width:100%;font-size:16px}
 .ed input[type=color]{width:44px;height:40px;border:0;padding:0;background:none}
 .th{font-size:12px;color:var(--mut)}
@@ -345,6 +345,8 @@ table.g2{border-collapse:separate;border-spacing:0}
 .xch{border:0;border-radius:99px;background:color-mix(in srgb,var(--acc) 14%,var(--card));color:var(--acc);font-weight:600;font-size:12px;padding:5px 10px;cursor:pointer}
 @media(max-width:700px){.prow>.pdays,.prow>.pext{flex:1 1 100%}}
 .prow{display:flex!important;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}.prow>input[type=color]{flex:0 0 44px}.prow>[data-f=code]{flex:0 0 64px}.prow>[data-f=label]{flex:1 1 140px}.prow>select{flex:1 1 130px}.prow .nl{flex:0 0 64px}.prow .nl span{display:block;font-size:11px;color:var(--mut)}.prow.ph{display:none!important}.prow>.nt{flex:1 1 220px}.prow>.pdays,.prow>.pext{flex:0 1 auto}
+.itag{font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.3px}
+.drow .tmpk{margin:0;font-size:13px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -523,7 +525,7 @@ const DEF_POSTS=[
  {id:'gm',code:'GM',label:'Garde maternité',color:'#c92f2f',cat:'garde',h:24,hn:14,nw:1,ne:1},
  {id:'gu',code:'GU',label:'Garde bloc des urgences',color:'#8e2f5e',cat:'garde',h:24,hn:14,nw:1,ne:1},
  {id:'rs',code:'RQ',label:'Repos de garde (RQ)',color:'#f2b8b5',cat:'repos',h:0,nw:0,ne:0},
- {id:'tnc',code:'TNC',label:'Temps non clinique',color:'#7a8f3a',cat:'travail',h:11,nw:0,ne:0,auto:false},
+ {id:'tnc',code:'TNC',label:'Temps non clinique',color:'#7a8f3a',cat:'travail',h:8,nw:0,ne:0,auto:false},
  {id:'ind',code:'IND',label:'Indisponible',color:'#7c8798',cat:'indispo',h:0,nw:0,ne:0,auto:false},
  {id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'autre',h:0,nw:0,ne:0,auto:false},
  {id:'off',code:'OFF',label:'Plage OFF',color:'#c9d3d8',cat:'repos',h:0,nw:0,ne:0,auto:false},
@@ -559,9 +561,9 @@ const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[]
   if(!x.v5){if(!x.posts.some(p=>p.id==='reu'))x.posts.push({id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'travail',h:0,nw:0,ne:0,auto:false});x.v5=true}
   if(!x.v4){for(const p of x.posts)if(p.id==='rs'&&p.code==='RS')p.code='RQ';x.v4=true}
   if(!x.v3){for(const p of x.posts)if(p.id==='sspi'){p.auto=false;p.nw=0}x.v3=true}
-  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'8:00–19:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
+  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v13){const t=x.posts.find(p=>p.id==='tnc');if(t){if(+t.h===11)t.h=8;if(t.t==='8:00–19:00')t.t='9:00–17:00'}x.v13=true}if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'9:00–17:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
 const ls=(k,v)=>{try{if(v===undefined){const r=localStorage.getItem(k);return r?JSON.parse(r):null}localStorage.setItem(k,JSON.stringify(v))}catch(e){mem=false;return null}};
-let S,U,mem=true,canEdit=true,canAdmin=true,sb=null,prof=null,lastAt=null,pushT=null,prefT=null,base={},baseCfg='';
+let isSec=false,S,U,mem=true,canEdit=true,canAdmin=true,sb=null,prof=null,lastAt=null,pushT=null,prefT=null,base={},baseCfg='';
 const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
 if(REMOTE){const c=ls(KEY+'-cache');S=norm(c&&c.S);U=Object.assign({colors:{}},c&&c.U)}
 else{S=ls(KEY);if(!S||!S.docs||S.ex)S=sample();S=norm(S);U=Object.assign({me:S.me||'d0',mode:'w',colors:{}},ls(KEY+'-prefs'));delete S.me}
@@ -599,8 +601,8 @@ const PS=(k,d)=>ids(get(k,d)).map(P).filter(Boolean);
 const has=(k,d,c)=>PS(k,d).some(p=>p.cat===c);
 const hrs=(p,k)=>p.cat==='garde'&&!isWE(k)?(p.hn==null?14:+p.hn||0):(+p.h||0);
 // une case = un poste, ou en semaine : poste de jour + garde de nuit
-const mayEdit=d=>canAdmin||(canEdit&&!!d&&d===U.me);
-const allowed=p=>canAdmin||!p.auto;
+const mayEdit=d=>canAdmin||(canEdit&&!!d&&(isSec?!!DOC(d)?.tmp:d===U.me));
+const allowed=p=>canAdmin||isSec||!p.auto;
 const autoOnly=v=>ids(v).filter(x=>P(x)?.auto).join('+')||null;
 const isX=id=>P(id)?.cat==='autre';
 function combine(cur,pid){
@@ -651,7 +653,7 @@ function render(){
   }
   h+='</tr></thead><tbody>';
   for(const doc of S.docs){
-    h+=`<tr class="${doc.id===U.me?'me':''}"><td class="nm"><div class="nmw"><span class="av" style="background:${av(doc.name)}">${esc(ini(doc.name))}</span><span class="nt"><span class="nn">${esc(doc.name)}</span>${mode==='w'?(()=>{const w=weekH(days[0],doc.id);return `<span class="hp ${w.any?(w.h<w.target?'lo':'ok'):''}">${w.any?w.h+' h':'—'}</span>`})():''}</span></div></td>`;
+    h+=`<tr class="${doc.id===U.me?'me':''}"><td class="nm"><div class="nmw"><span class="av" style="background:${av(doc.name)}">${esc(ini(doc.name))}</span><span class="nt"><span class="nn">${esc(doc.name)}${doc.tmp?' <small class="itag">intérim</small>':''}</span>${mode==='w'?(()=>{const w=weekH(days[0],doc.id);return `<span class="hp ${w.any?(w.h<w.target?'lo':'ok'):''}">${w.any?w.h+' h':'—'}</span>`})():''}</span></div></td>`;
     for(const k of days){
       const all=PS(k,doc.id),ps=all.filter(x=>x.cat!=='autre'),xs=all.filter(x=>x.cat==='autre'),w=warnsFor(k,doc.id);
       const body=ps.length?ps.map(x=>`<span class="cp" style="${tint(esc(col(x)))}">${esc(x.code)}</span>`).join(''):'<span class="dot"></span>';
@@ -671,8 +673,8 @@ function renderAlerts(days){
   for(const k of days){
     const dd=D(k),lab=DW[dd.getDay()]+' '+dd.getDate();
     for(const c of coverage(k))if(c.need>c.who.length)L.push(`${lab} : ${c.p.label} non pourvu (${c.who.length}/${c.need})`);
-    if(D(k).getDay()===1)for(const d of S.docs){const c=capa(k,d.id);if(c.ind&&c.max<c.target)L.push(`§Semaine du ${dd.getDate()} ${MO[dd.getMonth()]} : ${d.name}, ${c.ind} indisponibilité(s), ${c.max} h possibles sur ${c.target} h`)}
-    if(D(k).getDay()===1)for(const d of S.docs){const w=weekH(k,d.id);if(w.any&&w.h<w.target)L.push(`§Semaine du ${dd.getDate()} ${MO[dd.getMonth()]} : ${d.name} à ${w.h} h, sous le repère indicatif de ${w.target} h`)}
+    if(D(k).getDay()===1)for(const d of S.docs.filter(x=>!x.tmp)){const c=capa(k,d.id);if(c.ind&&c.max<c.target)L.push(`§Semaine du ${dd.getDate()} ${MO[dd.getMonth()]} : ${d.name}, ${c.ind} indisponibilité(s), ${c.max} h possibles sur ${c.target} h`)}
+    if(D(k).getDay()===1)for(const d of S.docs.filter(x=>!x.tmp)){const w=weekH(k,d.id);if(w.any&&w.h<w.target)L.push(`§Semaine du ${dd.getDate()} ${MO[dd.getMonth()]} : ${d.name} à ${w.h} h, sous le repère indicatif de ${w.target} h`)}
     for(const d of S.docs){
       for(const w of warnsFor(k,d.id))L.push(`${lab} : ${d.name} affecté(e) en ${PS(k,d.id).map(x=>x.label).join(' + ')}, ${w}`);
     }
@@ -685,9 +687,9 @@ const last3=ym=>{const [y,m]=ym.split('-').map(Number);return new Set([0,1,2].ma
 const worked=(k,d)=>PS(k,d).some(p=>p.cat==='travail'||p.cat==='garde');
 function gap3(ym){
   const ms=last3(ym),days={};let tot=0,sp=0;
-  for(const d of S.docs){days[d.id]=0;sp+=pctOf(d.id)}
+  for(const d of S.docs.filter(x=>!x.tmp)){days[d.id]=0;sp+=pctOf(d.id)}
   for(const [k,day] of Object.entries(S.plan)){if(!ms.has(k.slice(0,7)))continue;for(const d in day)if(d in days&&worked(k,d)){days[d]++;tot++}}
-  const out={};for(const d of S.docs)out[d.id]={n:days[d.id],gap:sp?Math.round((days[d.id]-tot*pctOf(d.id)/sp)*10)/10:0};return out;
+  const out={};for(const d of S.docs)out[d.id]=d.tmp?{n:0,gap:0}:{n:days[d.id],gap:sp?Math.round((days[d.id]-tot*pctOf(d.id)/sp)*10)/10:0};return out;
 }
 function renderStats(){
   const d=D(cur),y=d.getFullYear(),m=d.getMonth(),pre=scope==='m'?y+'-'+pad(m+1)+'-':y+'-';
@@ -717,14 +719,14 @@ $('board').addEventListener('click',e=>{
   const dy=e.target.closest('[data-day]');if(dy)return openDay(dy.dataset.day);
   const c=e.target.closest('[data-k]');if(!c)return;const k=c.dataset.k,d=c.dataset.d;
   if(!mayEdit(d))return openDay(k);
-  if(brush){if(brush!=='x'&&!allowed(P(brush)))return;if(brush==='x'&&!canAdmin){(S.plan[k]=S.plan[k]||{})[d]=autoOnly(get(k,d));if(!S.plan[k][d])delete S.plan[k][d];save();render();return}setCell(k,d,brush==='x'?null:brush);save();render();return}
+  if(brush){if(brush!=='x'&&!allowed(P(brush)))return;if(brush==='x'&&!canAdmin&&!isSec){(S.plan[k]=S.plan[k]||{})[d]=autoOnly(get(k,d));if(!S.plan[k][d])delete S.plan[k][d];save();render();return}setCell(k,d,brush==='x'?null:brush);save();render();return}
   openCell(k,d);
 });
 function cellOpts(){
   const {k,d}=openC,cur_=get(k,d),btn=p=>{const taken=S.docs.filter(x=>x.id!==d&&ids(get(k,x.id)).includes(p.id)).length,need=needOf(p,k);
     return `<button class="opt" data-p="${esc(p.id)}" aria-pressed="${ids(cur_).includes(p.id)}" style="${ids(cur_).includes(p.id)?`background:${esc(col(p))};color:${fg(col(p))}`:tint(esc(col(p)))}"><span><b>${esc(p.code)}</b>${need?` <small>(${taken}/${need})</small>`:''}<small style="display:block;font-weight:400;font-size:12px;line-height:1.2">${esc(p.label)}</small></span></button>`};
   const mine=S.posts.filter(p=>!p.auto),auto=S.posts.filter(p=>p.auto),lock=ids(cur_).map(P).filter(p=>p&&p.auto);
-  $('dOpts').innerHTML=`<p class="grp">Mes saisies</p><div class="opts">${mine.map(btn).join('')}</div>`+(canAdmin&&auto.length?`<p class="grp">Bloc et consultation (administrateur)</p><div class="opts">${auto.map(btn).join('')}</div>`:lock.length?`<p class="grp">Posé par l'administrateur : ${lock.map(p=>esc(p.label)).join(', ')}</p>`:'');
+  $('dOpts').innerHTML=`<p class="grp">Mes saisies</p><div class="opts">${mine.map(btn).join('')}</div>`+((canAdmin||isSec&&DOC(d)?.tmp)&&auto.length?`<p class="grp">Bloc et consultation (administrateur)</p><div class="opts">${auto.map(btn).join('')}</div>`:lock.length?`<p class="grp">Posé par l'administrateur : ${lock.map(p=>esc(p.label)).join(', ')}</p>`:'');
 }
 function openCell(k,d){
   openC={k,d};const dd=D(k);
@@ -765,7 +767,7 @@ function renderRooms(){
 }
 function renderEditors(){
   renderRooms();
-  $('docs').innerHTML=S.docs.map((d,i)=>`<div class="drow" data-i="${i}"><input type="text" data-f="name" value="${esc(d.name)}" maxlength="30" aria-label="Nom"><select data-f="pct" aria-label="Quotité de travail">${[100,90,80,70,60,50].map(v=>`<option value="${v}" ${(+d.pct||100)===v?'selected':''}>${v} %</option>`).join('')}</select><button class="ib" data-del="${i}" aria-label="Retirer ${esc(d.name)}" style="height:40px;font-size:15px">✕</button></div>`).join('');
+  $('docs').innerHTML=S.docs.map((d,i)=>`<div class="drow" data-i="${i}"><input type="text" data-f="name" value="${esc(d.name)}" maxlength="30" aria-label="Nom"><select data-f="pct" aria-label="Quotité de travail">${[100,90,80,70,60,50].map(v=>`<option value="${v}" ${(+d.pct||100)===v?'selected':''}>${v} %</option>`).join('')}</select><label class="chk tmpk" title="Intérimaire : hors répartition automatique et hors équilibre"><input type="checkbox" data-f="tmp" ${d.tmp?'checked':''}>Intérim</label><button class="ib" data-del="${i}" aria-label="Retirer ${esc(d.name)}" style="height:40px;font-size:15px">✕</button></div>`).join('');
   $('meSel').innerHTML='<option value="">—</option>'+S.docs.map(d=>`<option value="${esc(d.id)}" ${d.id===U.me?'selected':''}>${esc(d.name)}</option>`).join('');
   $('posts').innerHTML=S.posts.map((p,i)=>`<div class="prow" data-i="${i}">
    <input type="color" data-f="color" value="${esc(p.color)}" aria-label="Couleur">
@@ -783,7 +785,7 @@ function renderEditors(){
   $('autoRS').checked=!!S.autoRS;$('minH').value=S.minH;$('dayH').value=S.dayH;
 }
 const twoTap=(b,msg)=>{if(b.dataset.sure==='1')return true;b.dataset.sure='1';b.textContent=msg;b.style.fontSize='12px';return false};
-$('docs').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(!r)return;const doc=S.docs[+r.dataset.i];if(e.target.dataset.f==='pct')doc.pct=+e.target.value;else{const v=e.target.value.trim();if(!v)return;doc.name=v}save();render();renderEditors()});
+$('docs').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(!r)return;const doc=S.docs[+r.dataset.i];if(e.target.dataset.f==='tmp'){if(e.target.checked)doc.tmp=true;else delete doc.tmp}else if(e.target.dataset.f==='pct')doc.pct=+e.target.value;else{const v=e.target.value.trim();if(!v)return;doc.name=v}save();render();renderEditors()});
 $('docs').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b||!twoTap(b,'Sûr ?'))return;const d=S.docs.splice(+b.dataset.del,1)[0];for(const k in S.plan)delete S.plan[k][d.id];save();renderEditors();render()});
 let undo=null;
 $('autoFill').onclick=()=>{
@@ -800,7 +802,7 @@ $('autoFill').onclick=()=>{
     need.sort(()=>Math.random()-.5);
     for(const p of need){
       // libres : rien ce jour-là, ou seulement une garde de nuit (on privilégie alors une journée avant la garde)
-      const free=S.docs.filter(d=>{const ps=PS(k,d.id);const m=ps.filter(x=>x.cat!=='autre');return !m.length||(m.length===1&&m[0].cat==='garde')});
+      const free=S.docs.filter(d=>{if(d.tmp)return false;const ps=PS(k,d.id);const m=ps.filter(x=>x.cat!=='autre');return !m.length||(m.length===1&&m[0].cat==='garde')});
       if(!free.length){miss++;continue}
       const wk=monOf(k);
       const score=d=>{const q=pctOf(d.id),w=weekH(wk,d.id);return (cnt[d.id][p.id]||0)/q*3+tot[d.id]/q*2+(w.h>=w.target?4:0)-(get(k,d.id)?5:0)+Math.random()};
@@ -930,9 +932,9 @@ function renderMe(){
   else{const e=addD(meW,6),a=D(meW),z=D(e);$('mTitle').textContent='Semaine du '+a.getDate()+(a.getMonth()!==z.getMonth()?' '+MOS[a.getMonth()]:'')+' au '+z.getDate()+' '+MOS[z.getMonth()]}
   $('mPrev').setAttribute('aria-label',mv==='m'?'Mois précédent':'Semaine précédente');$('mNext').setAttribute('aria-label',mv==='m'?'Mois suivant':'Semaine suivante');
   $('mWarn').innerHTML='';
-  if(!me&&REMOTE&&!canAdmin){$('mPick').innerHTML='<h2>Compte pas encore relié</h2><p class="note">Votre compte n\'est pas encore relié à une ligne du planning. Demandez à l\'administrateur de le faire dans Réglages, Comptes.</p>';return}
+  if(!me&&REMOTE&&!canAdmin&&!isSec){$('mPick').innerHTML='<h2>Compte pas encore relié</h2><p class="note">Votre compte n\'est pas encore relié à une ligne du planning. Demandez à l\'administrateur de le faire dans Réglages, Comptes.</p>';return}
   if(!me){$('mWho').textContent='';$('mPickL').innerHTML=S.docs.map(d=>`<button class="opt" data-me="${esc(d.id)}" style="background:var(--soft)">${esc(d.name)}</button>`).join('')||'<p class="note">Aucun médecin : ajoutez l\'équipe dans Réglages.</p>';return}
-  $('mWho').textContent=me.name+(canAdmin||!REMOTE?' · changer':'');$('mWho').disabled=REMOTE&&!canAdmin;
+  $('mWho').textContent=me.name+(canAdmin||isSec||!REMOTE?' · changer':'');$('mPer').hidden=!mayEdit(me.id);$('mWho').disabled=REMOTE&&!canAdmin&&!isSec;
   $('agenda').innerHTML=mv==='m'?monthView(me.id):weekView(me.id);
   let mons;if(mv==='m'){const [y,m]=meM.split('-').map(Number),n=new Date(y,m,0).getDate();mons=[...new Set(Array.from({length:n},(_,i)=>monOf(meM+'-'+pad(i+1))))]}else mons=[meW];
   const warn=[];
@@ -946,7 +948,7 @@ $('mNext').onclick=()=>{if(U.mv==='m'){const [y,m]=meM.split('-').map(Number);me
 $('mView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;U.mv=b.dataset.v;if(U.mv==='m'){meM=(meW<=TK&&TK<=addD(meW,6)?TK:addD(meW,3)).slice(0,7)}else{meW=monOf(meSel.startsWith(meM)?meSel:meM+'-01')}savePrefs();renderMe();window.scrollTo(0,0)});
 $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
-$('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&canEdit)openCell(b.dataset.k,U.me)});
+$('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
 $('mPer').onclick=()=>$('perBtn').click();
 function startApp(){
   applySkin();
@@ -991,7 +993,7 @@ async function loadAccts(){
   $('accts').innerHTML=data.map(a=>`<div class="acc" data-id="${esc(a.id)}"><span>${esc(a.display_name||a.email)}<small>${esc(a.email)}</small></span>
     <label class="chk" style="margin:0"><input type="checkbox" data-a="active" ${a.active?'checked':''} ${a.id===prof.id?'disabled':''}>Activé</label>
     <select class="in" data-a="doc_id" style="height:40px;width:auto" aria-label="Ligne du planning"><option value="">— ligne —</option>${S.docs.map(d=>`<option value="${esc(d.id)}" ${a.doc_id===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select>
-    <select class="in" data-a="role" style="height:40px;width:auto" ${a.id===prof.id?'disabled':''}><option value="member" ${a.role==='member'?'selected':''}>Membre</option><option value="admin" ${a.role==='admin'?'selected':''}>Admin</option></select></div>`).join('');
+    <select class="in" data-a="role" style="height:40px;width:auto" ${a.id===prof.id?'disabled':''}><option value="member" ${a.role==='member'?'selected':''}>Membre</option><option value="secretary" ${a.role==='secretary'?'selected':''}>Secrétaire</option><option value="admin" ${a.role==='admin'?'selected':''}>Admin</option></select></div>`).join('');
 }
 $('accts').addEventListener('change',async e=>{const r=e.target.closest('[data-id]'),f=e.target.dataset.a;if(!r||!f)return;
   const v=f==='active'?e.target.checked:f==='doc_id'?(e.target.value||null):e.target.value;const {error}=await sb.from('profiles').update({[f]:v}).eq('id',r.dataset.id);
@@ -1003,8 +1005,8 @@ async function afterLogin(){
   if(error)return showAuth('Profil introuvable : '+error.message);
   prof=p;if(p.must_change_pw)return showAuth('',true);
   if(!p.active){await sb.auth.signOut();return showAuth('Votre compte n\'est pas encore activé. Demandez à l\'administrateur du planning de l\'activer.')}
-  U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';if(p.doc_id)U.me=p.doc_id;else if(!canAdmin)U.me='';
-  $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':'membre');
+  U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';isSec=p.role==='secretary';if(p.doc_id&&!isSec)U.me=p.doc_id;else if(!canAdmin&&!isSec)U.me='';
+  $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':isSec?'secrétaire':'membre');
   await pull();startApp();sync('À jour');loadAccts();
   sb.channel('planning')
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
