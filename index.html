@@ -609,6 +609,8 @@ table.g2{border-collapse:separate;border-spacing:0}
 #gMulti[aria-pressed=true]{background:var(--acc)!important;color:#fff!important}
 .mbar{z-index:30}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #hint{color:var(--mut)}
+.swdocs{display:flex;flex-wrap:wrap;gap:6px}.swdocs .tb[aria-pressed=true]{background:var(--acc);color:#fff;border-color:transparent;font-weight:700}
+#dSw .opt.on{outline:3px solid var(--acc);outline-offset:1px}#dSw .opts{display:flex;flex-wrap:wrap;gap:6px}#dSw .opt{min-height:44px;padding:6px 12px}
 </style>
 </head>
 <body>
@@ -767,21 +769,20 @@ table.g2{border-collapse:separate;border-spacing:0}
   <h2 id="dCellT"></h2>
   <div id="dOpts"></div>
   <div id="dNote"></div>
-  <div class="acts"><button class="tb" id="dSwap" hidden>⇄ Proposer un échange</button></div>
+  <div class="acts"><button class="tb" id="dSwap" hidden>⇄ Échange</button></div>
   <div class="acts"><button class="tb" id="dClear">Tout retirer</button><span style="flex:1"></span><button class="tb" id="dClose" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700;min-width:120px">Terminé</button></div>
 </dialog>
 <dialog id="dSw" class="sheet">
-  <h2>Proposer un échange</h2>
-  <form id="fSw" style="display:grid;gap:10px">
-   <p class="note" id="swWhat" style="margin:0"></p>
-   <label>Mon poste à céder<select class="in" id="swPost" style="height:44px"></select></label>
-   <label>Avec<select class="in" id="swTo" style="height:44px"></select></label>
-   <div class="swk"><label><input type="radio" name="swk" value="x" checked> Échange contre un de ses postes</label><label><input type="radio" name="swk" value="c"> Cession, sans contrepartie</label></div>
-   <div id="swB" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Son jour<input class="in" type="date" id="swDay" style="height:44px"></label><label>Son poste<select class="in" id="swPostB" style="height:44px"></select></label></div>
+  <h2 id="swWhat">Échange</h2>
+  <form id="fSw" style="display:grid;gap:12px">
+   <div id="swMine"></div>
+   <div><p class="grp" style="margin:0 0 6px">Avec qui ?</p><div class="swdocs" id="swTo"></div></div>
+   <div><p class="grp" style="margin:0 0 6px">Contre son jour du</p><input class="in" type="date" id="swDay" style="height:44px;width:100%"></div>
+   <div id="swHis"></div>
    <p class="note" id="swInfo" style="margin:0"></p>
-   <label>Message (facultatif)<input class="in" id="swMsg" maxlength="200" style="height:44px" placeholder="ex. empêchement familial"></label>
+   <details><summary class="note">Ajouter un mot (facultatif)</summary><input class="in" id="swMsg" maxlength="200" style="height:44px;margin-top:6px" placeholder="ex. empêchement familial"></details>
    <p class="note" id="swErr" style="margin:0;color:var(--red)"></p>
-   <div class="acts"><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button><span style="flex:1"></span><button class="tb" type="submit" id="swSend" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700">Envoyer la proposition</button></div>
+   <div class="acts"><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button><span style="flex:1"></span><button class="tb" type="submit" id="swSend" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700">Envoyer</button></div>
   </form>
 </dialog>
 <dialog id="dSwL" class="sheet">
@@ -1418,8 +1419,8 @@ async function pushRefresh(){
   if($('pushInfo'))$('pushInfo').textContent=T[PUSH]||'';$('pushOn').hidden=PUSH!=='off';$('pushTest').hidden=PUSH!=='on';
   if(tab==='Me'&&typeof renderMe==='function')renderMe();
 }
-async function fnCall(action,auth){const h={'Content-Type':'application/json',apikey:CFG.key};if(auth){const {data}=await sb.auth.getSession();if(data?.session)h.Authorization='Bearer '+data.session.access_token}
-  const r=await fetch(FN(),{method:'POST',headers:h,body:JSON.stringify({action})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Service de notifications indisponible ('+r.status+') : la fonction « rappels » est-elle installée ?'));return j}
+async function fnCall(action,auth,extra){const h={'Content-Type':'application/json',apikey:CFG.key};if(auth){const {data}=await sb.auth.getSession();if(data?.session)h.Authorization='Bearer '+data.session.access_token}
+  const r=await fetch(FN(),{method:'POST',headers:h,body:JSON.stringify({action,...(extra||{})})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Service de notifications indisponible ('+r.status+') : la fonction « rappels » est-elle installée ?'));return j}
 async function pushEnable(){
   const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error('Notifications refusées : autorisez-les dans les réglages du téléphone.');
   const {publicKey}=await fnCall('key');const r=await navigator.serviceWorker.ready;let sub=await r.pushManager.getSubscription();
@@ -1433,6 +1434,7 @@ $('pushOn').onclick=async()=>{const b=$('pushOn');b.disabled=true;try{await push
 $('pushTest').onclick=async()=>{try{const j=await fnCall('test',true);sync(j.sent?'Notification de test envoyée':'Aucun appareil enregistré pour ce compte',!j.sent)}catch(e){sync(e.message,true)}};
 $('pushSend').onclick=async()=>{const b=$('pushSend');if(!twoTap(b,'Confirmer l\'envoi'))return;try{const j=await fnCall('send',true);sync(`${j.sent||0} notification(s) envoyée(s) à ${j.users||0} médecin(s) en retard`)}catch(e){sync(e.message,true)}finally{b.dataset.sure='';b.textContent='Envoyer maintenant une notification aux retardataires';b.style.fontSize=''}};
 setTimeout(()=>pushRefresh().catch(()=>{}));
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data==='echanges'){loadSwaps();openSwL()}});
 $('agenda').addEventListener('click',e=>{const b=e.target.closest('[data-pushon]');if(!b)return;e.stopImmediatePropagation();if(PUSH==='install'){showTab('Set');return}$('pushOn').click()},true);
 // ===== Saisie du planning : dates limites, rappels, suivi =====
 let ACC=[];
@@ -1493,7 +1495,7 @@ let SW=[],SWE={},HASSW=true,swScope='me',swTodo0=0;
 const swList=()=>REMOTE?SW:(S.swaps||[]);
 const swEv=id=>REMOTE?(SWE[id]||[]):((S.swapEv||{})[id]||[]);
 const swOk=()=>REMOTE?(HASSW&&!isSec&&!!prof&&!!prof.doc_id&&U.me===prof.doc_id):!!U.me;
-const swPosts=(k,d)=>PS(k,d).filter(p=>p.cat!=='autre');
+const swPosts=(k,d)=>PS(k,d).filter(p=>['travail','garde','astreinte'].includes(p.cat));
 const fD=k=>D(k).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 const SWST={proposed:'En attente de réponse',applied:'Accepté et appliqué',refused:'Refusé',cancelled:'Annulé',reverted:'Annulé par l\'administrateur',accepted:'Accepté',rejected:'Rejeté'};
 async function loadSwaps(){
@@ -1531,25 +1533,33 @@ async function swCall(fn,args){
   if(REMOTE){const {data,error}=await sb.rpc(fn,args);if(error)throw new Error(error.message);try{await pull()}catch(e){}await loadSwaps();if(tab==='Me')renderMe();return data}
   const r=swLocal[fn](args);save();render();if(tab==='Me')renderMe();renderSwBadge();return r;
 }
+let swSt={};
+const chipsOf=(L,name,sel)=>L.map(p=>`<button type="button" class="opt${p.id===sel?' on':''}" data-${name}="${esc(p.id)}" style="${tint(esc(col(p)))}"><b>${esc(p.code)}</b> <small>${esc(p.label)}</small></button>`).join('');
 function openSwap(k){
   const ps=swPosts(k,U.me);if(!ps.length)return;$('swErr').textContent='';$('swMsg').value='';
-  $('swWhat').textContent='Votre journée du '+D(k).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  $('swPost').innerHTML=ps.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');$('swPost').dataset.k=k;
-  $('swTo').innerHTML=S.docs.filter(d=>d.id!==U.me&&!d.tmp).map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
-  $('swDay').value=k;document.querySelector('[name=swk][value=x]').checked=true;swForm();$('dSw').showModal();
+  swSt={k,pa:(ps.find(p=>p.cat==='garde')||ps[0]).id,to:'',kb:k,pb:''};
+  $('swWhat').textContent='Échanger mon '+D(k).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  $('swTo').innerHTML=S.docs.filter(d=>d.id!==U.me&&!d.tmp).map(d=>`<button type="button" class="tb" data-swto="${esc(d.id)}">${esc(d.name)}</button>`).join('');
+  $('swDay').value=k;swForm();$('dSw').showModal();
 }
 function swForm(){
-  const k=$('swPost').dataset.k,to=$('swTo').value,x=document.querySelector('[name=swk]:checked').value==='x',kb=$('swDay').value;$('swB').hidden=!x;
-  const pb=x&&kb?swPosts(kb,to):[];$('swPostB').innerHTML=pb.length?pb.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join(''):'<option value="">Aucun poste ce jour-là</option>';
-  const who=DOC(to)?.name||'';const c=PS(k,to);
-  $('swInfo').textContent=to?(`Le ${fD(k)}, ${who} a : ${c.length?c.map(p=>p.label).join(', '):'rien de prévu'}.`)+(x&&kb&&kb!==k?` Le ${fD(kb)}, vous avez : ${PS(kb,U.me).map(p=>p.label).join(', ')||'rien de prévu'}.`:''):'';
+  const {k,to}=swSt,kb=$('swDay').value,mine=swPosts(k,U.me);swSt.kb=kb;
+  $('swMine').innerHTML=mine.length>1?`<p class="grp" style="margin:0 0 6px">Quel poste ?</p><div class="opts">${chipsOf(mine,'swpa',swSt.pa)}</div>`:`<p class="note" style="margin:0">Votre poste : <b>${esc(mine[0]?.label||'')}</b></p>`;
+  for(const b of $('swTo').children)b.setAttribute('aria-pressed',b.dataset.swto===to);
+  const his=to&&kb?swPosts(kb,to):[];if(!his.some(p=>p.id===swSt.pb))swSt.pb=(his.find(p=>p.cat===P(swSt.pa)?.cat)||his[0])?.id||'';
+  $('swHis').innerHTML=his.length>1?`<p class="grp" style="margin:0 0 6px">Son poste ce jour-là</p><div class="opts">${chipsOf(his,'swpb',swSt.pb)}</div>`:'';
+  const who=DOC(to)?.name||'',pa=P(swSt.pa)?.label||'',pb=P(swSt.pb)?.label;const fL=x=>D(x).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  $('swInfo').innerHTML=!to?'Choisissez le collègue.':pb?`Vous lui donnez <b>${esc(pa)}</b> du ${esc(fL(k))}, ${esc(who)} vous donne <b>${esc(pb)}</b> du ${esc(fL(kb))}.`:`${esc(who)} n'a rien ce jour-là : vous lui cédez <b>${esc(pa)}</b> du ${esc(fL(k))}, sans contrepartie.`;
+  $('swSend').disabled=!to;
 }
-for(const id of ['swTo','swDay','swPost'])$(id).addEventListener('change',swForm);
-document.querySelectorAll('[name=swk]').forEach(r=>r.addEventListener('change',swForm));
-$('fSw').onsubmit=async e=>{e.preventDefault();const x=document.querySelector('[name=swk]:checked').value==='x';
-  const a={p_to:$('swTo').value,p_day_a:$('swPost').dataset.k,p_post_a:$('swPost').value,p_day_b:x?$('swDay').value||null:null,p_post_b:x?$('swPostB').value||null:null,p_msg:$('swMsg').value.trim().slice(0,200)||null};
-  if(x&&!a.p_post_b){$('swErr').textContent='Choisissez le poste du collègue, ou passez en cession.';return}
-  $('swSend').disabled=true;try{await swCall('propose_swap',a);$('dSw').close();$('dCell').close();sync('Proposition envoyée à '+(DOC(a.p_to)?.name||'votre collègue'));openSwL()}catch(err){$('swErr').textContent=err.message}finally{$('swSend').disabled=false}};
+$('swTo').addEventListener('click',e=>{const b=e.target.closest('[data-swto]');if(!b)return;swSt.to=b.dataset.swto;swForm()});
+$('dSw').addEventListener('click',e=>{const a=e.target.closest('[data-swpa]'),b=e.target.closest('[data-swpb]');if(a){swSt.pa=a.dataset.swpa;swForm()}if(b){swSt.pb=b.dataset.swpb;swForm()}});
+$('swDay').addEventListener('change',swForm);
+const swNotify=id=>{if(REMOTE&&id)fnCall('swap',true,{id}).catch(()=>{})};
+$('fSw').onsubmit=async e=>{e.preventDefault();if(!swSt.to)return;
+  const same=swSt.pb&&swSt.kb===swSt.k&&swSt.pb===swSt.pa;if(same){$('swErr').textContent='Vous avez le même poste ce jour-là : choisissez un autre jour.';return}
+  const a={p_to:swSt.to,p_day_a:swSt.k,p_post_a:swSt.pa,p_day_b:swSt.pb?swSt.kb:null,p_post_b:swSt.pb||null,p_msg:$('swMsg').value.trim().slice(0,200)||null};
+  $('swSend').disabled=true;try{const id=await swCall('propose_swap',a);swNotify(id);$('dSw').close();$('dCell').close();sync('Proposition envoyée à '+(DOC(a.p_to)?.name||'votre collègue'))}catch(err){$('swErr').textContent=err.message}finally{$('swSend').disabled=false}};
 $('dSwap').onclick=()=>openSwap(openC.k);
 function openSwL(){renderSwL();if(!$('dSwL').open)$('dSwL').showModal();if(REMOTE)loadSwaps()}
 $('mSw').onclick=openSwL;
@@ -1568,11 +1578,11 @@ function renderSwL(){
   const todo=L.filter(x=>x.status==='proposed'&&x.to_doc===me),wait=L.filter(x=>x.status==='proposed'&&x.to_doc!==me),done=L.filter(x=>x.status!=='proposed');
   $('swList').innerHTML=(REMOTE&&!HASSW?'<p class="note" style="color:var(--red)">Les échanges ne sont pas encore activés dans la base : l\'administrateur doit exécuter la mise à jour SQL.</p>':'')+
    (todo.length?'<p class="grp">À traiter</p>'+todo.map(item).join(''):'')+(wait.length?'<p class="grp">En attente</p>'+wait.map(item).join(''):'')+(done.length?'<p class="grp">Historique</p>'+done.map(item).join(''):'')+
-   (L.length?'':'<p class="note">Aucun échange pour l\'instant. Pour en proposer un, touchez un de vos jours, puis « Proposer un échange ».</p>');
+   (L.length?'':'<p class="note">Aucun échange pour l\'instant. Pour en proposer un, touchez un de vos jours, puis « Échange ».</p>');
 }
 $('swList').addEventListener('click',async e=>{const b=e.target.closest('[data-swa],[data-swr],[data-swc]');if(!b)return;
   const id=+(b.dataset.swa||b.dataset.swr||b.dataset.swc);if(b.dataset.swc&&!twoTap(b,'Confirmer l\'annulation'))return;b.disabled=true;
-  try{if(b.dataset.swc)await swCall('cancel_swap',{p_id:id,p_reason:null});else await swCall('respond_swap',{p_id:id,p_accept:!!b.dataset.swa});sync(b.dataset.swa?'Échange accepté : planning mis à jour':b.dataset.swr?'Échange refusé':'Échange annulé')}
+  try{if(b.dataset.swc)await swCall('cancel_swap',{p_id:id,p_reason:null});else{await swCall('respond_swap',{p_id:id,p_accept:!!b.dataset.swa});swNotify(id)}sync(b.dataset.swa?'Échange accepté : planning mis à jour':b.dataset.swr?'Échange refusé':'Échange annulé')}
   catch(err){sync(err.message,true)}renderSwL()});
 $('printBtn').onclick=()=>{buildPrint();setTimeout(()=>window.print(),50)};
 function buildPrint(){
@@ -1649,7 +1659,7 @@ async function afterLogin(){
   if(!p.active){await sb.auth.signOut();return showAuth('Votre compte n\'est pas encore activé. Demandez à l\'administrateur du planning de l\'activer.')}
   U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';isSec=p.role==='secretary';if(p.doc_id&&!isSec)U.me=p.doc_id;else if(!canAdmin&&!isSec)U.me='';
   $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':isSec?'secrétaire':'membre');
-  await pull();startApp();sync('À jour');loadAccts();loadSwaps();loadAccList();pushRefresh();
+  await pull();startApp();sync('À jour');loadAccts();loadSwaps();loadAccList();pushRefresh();if(location.hash==='#echanges'){history.replaceState(null,'',location.pathname);openSwL()}
   sb.channel('planning')
    .on('postgres_changes',{event:'*',schema:'public',table:'swaps'},()=>loadSwaps())
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
@@ -1684,7 +1694,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.5 (27 nov.)';
+const APPV='2027.6 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
