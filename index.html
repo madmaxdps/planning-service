@@ -221,7 +221,7 @@ dialog::backdrop{background:rgb(0 0 0/.35);backdrop-filter:blur(2px)}
 .skins button[aria-pressed=true]{box-shadow:0 0 0 2px var(--acc)}
 .skins i{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px #0002}
 :root{--acc:var(--blue);--tm:62%}
-@media(prefers-color-scheme:dark){:root:not([data-skin=pastel]):not([data-theme=light]){--tm:45%}}
+@media(prefers-color-scheme:dark){:root:not([data-skin=pastel]):not([data-skin=vif]):not([data-theme=light]){--tm:45%}}
 :root[data-theme=dark]{--tm:45%}
 .tabs button[aria-pressed=true],.who,.big,.past{color:var(--acc)}
 .big{background:color-mix(in srgb,var(--acc) 14%,var(--card))}
@@ -369,6 +369,40 @@ table.g2{border-collapse:separate;border-spacing:0}
   .lg{margin:6px 0 0;font-size:7.5pt;display:flex;flex-wrap:wrap;gap:3px 12px}.lg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ft{font-size:7pt;color:#555;margin:4px 0 0}
 }
+
+/* Habillage « Couleur » (par défaut) */
+:root[data-skin=vif]{color-scheme:light;--tm:62%;--bg:#eef0fb;--card:#ffffff;--soft:#e8eafb;--line:#dfe2f6;--ink:#151a3a;--mut:#5f6690;--acc:#4f46e5;--blue:#4f46e5;--ok:#0f9f6e;--red:#e11d48;--shadow:0 1px 2px rgb(49 46 129/.06),0 8px 24px rgb(79 70 229/.10)}
+:root[data-skin=vif] body{background:linear-gradient(135deg,#4338ca 0%,#7c3aed 55%,#c026d3 100%) top/100% 250px no-repeat,linear-gradient(180deg,#eef0fb,#f6f1fd) fixed}
+:root[data-skin=vif] .mehead h1,:root[data-skin=vif] #tabTeam header h1,:root[data-skin=vif] .tab>h1,:root[data-skin=vif] #tabSet h1{color:#fff}
+:root[data-skin=vif] .mehead .ib,:root[data-skin=vif] #tabTeam header .ib,:root[data-skin=vif] #tabTeam header .tb{background:rgb(255 255 255/.18);color:#fff;border-color:transparent;box-shadow:none}
+:root[data-skin=vif] .who{background:rgb(255 255 255/.2);color:#fff}
+:root[data-skin=vif] .mseg,:root[data-skin=vif] #tabTeam .seg{background:rgb(255 255 255/.18)}
+:root[data-skin=vif] .mseg button,:root[data-skin=vif] #tabTeam .seg button{color:#fff}
+:root[data-skin=vif] .mseg button[aria-pressed=true],:root[data-skin=vif] #tabTeam .seg button[aria-pressed=true]{background:#fff;color:#4338ca}
+:root[data-skin=vif] .sync{color:rgb(255 255 255/.85)}
+:root[data-skin=vif] .dchip{box-shadow:0 4px 14px rgb(49 46 129/.12)}
+:root[data-skin=vif] .dchip.on{background:linear-gradient(135deg,#f97316,#db2777);color:#fff}.dchip.on b{color:rgb(255 255 255/.85)}
+:root[data-skin=vif] .sumc{background:linear-gradient(135deg,#ffffff 0%,#f4f2ff 100%)}
+:root[data-skin=vif] .sumc .bigh{background:linear-gradient(90deg,#4338ca,#c026d3);-webkit-background-clip:text;background-clip:text;color:transparent}
+:root[data-skin=vif] .secl{color:#6d28d9}
+:root[data-skin=vif] .teamlink{background:linear-gradient(90deg,#ecfeff,#eef2ff);color:#4338ca}
+:root[data-skin=vif] .fab{background:linear-gradient(135deg,#f97316,#db2777);box-shadow:0 10px 24px rgb(219 39 119/.35)}
+:root[data-skin=vif] .tabs{background:rgb(255 255 255/.86)}
+:root[data-skin=vif] .tabs button[aria-pressed=true]{color:#4338ca}
+:root[data-skin=vif] .tabs button[aria-pressed=true] svg{background:linear-gradient(135deg,#4f46e5,#c026d3);color:#fff;border-radius:12px;padding:3px;width:34px;height:30px}
+:root[data-skin=vif] details{border-left:5px solid #a5b4fc}
+:root[data-skin=vif] details:nth-of-type(3n+2){border-left-color:#f9a8d4}
+:root[data-skin=vif] details:nth-of-type(3n){border-left-color:#5eead4}
+:root[data-skin=vif] summary{color:#312e81}
+:root[data-skin=vif] .calm,:root[data-skin=vif] .tile,:root[data-skin=vif] .det,:root[data-skin=vif] .board{box-shadow:var(--shadow)}
+:root[data-skin=vif] .tile:first-child{background:linear-gradient(135deg,#fff,#fdf2f8)}
+:root[data-skin=vif] .tile:last-child{background:linear-gradient(135deg,#fff,#ecfeff)}
+:root[data-skin=vif] .big,:root[data-skin=vif] #autoFill{background:linear-gradient(135deg,#4f46e5,#7c3aed)!important;color:#fff!important}
+:root[data-skin=vif] .cc.td{box-shadow:inset 0 0 0 2px #db2777}
+:root[data-skin=vif] .dcard.today{box-shadow:0 0 0 3px var(--bg),0 0 0 5px #db2777}
+:root[data-skin=vif] .dcard .tag{background:linear-gradient(135deg,#f97316,#db2777);color:#fff}
+:root[data-skin=vif] #tabTeam header h1 small{color:rgb(255 255 255/.8)}
+:root[data-skin=vif] #hint{color:rgb(255 255 255/.92)}
 </style>
 </head>
 <body>
@@ -441,7 +475,7 @@ table.g2{border-collapse:separate;border-spacing:0}
 <details open>
   <summary>Mes préférences</summary>
   <label class="chk">Ma ligne :<select id="meSel" class="in" style="height:44px;width:auto"></select></label>
-  <p class="grp">Apparence</p><div class="skins" id="skins"><button data-s="clinique"><i style="background:linear-gradient(135deg,#f2f3f7 50%,#1d6fa5 50%)"></i>Clinique</button><button data-s="nuit"><i style="background:linear-gradient(135deg,#0b1220 50%,#3dd6b0 50%)"></i>Nuit de garde</button><button data-s="pastel"><i style="background:linear-gradient(135deg,#fbf6ef 50%,#e8735a 50%)"></i>Pastel</button></div>
+  <p class="grp">Apparence</p><div class="skins" id="skins"><button data-s="vif"><i style="background:linear-gradient(135deg,#4f46e5,#c026d3 60%,#f97316)"></i>Couleur</button><button data-s="clinique"><i style="background:linear-gradient(135deg,#f2f3f7 50%,#1d6fa5 50%)"></i>Clinique</button><button data-s="nuit"><i style="background:linear-gradient(135deg,#0b1220 50%,#3dd6b0 50%)"></i>Nuit de garde</button><button data-s="pastel"><i style="background:linear-gradient(135deg,#fbf6ef 50%,#e8735a 50%)"></i>Pastel</button></div>
   <label class="chk">Vue à l'ouverture :<select id="defMode" class="in" style="height:44px;width:auto"><option value="w">Semaine</option><option value="m">Mois</option></select></label>
   <p class="note">« Ma ligne » surligne votre planning et sert à l'export agenda. Couleurs des postes sur cet affichage uniquement :</p>
   <div class="prf" id="myCols"></div>
@@ -965,7 +999,7 @@ function renderMe(){
   for(const mon of mons.filter(m=>addD(m,6)>=TK)){const c=capa(mon,me.id);if(c.ind&&c.max<c.target)warn.push(`Semaine du ${D(mon).getDate()} ${MO[D(mon).getMonth()]} : avec ${c.ind} jour(s) d'indisponibilité, vous ne pourrez atteindre que ${c.max} h sur ${c.target} h.`)}
   $('mWarn').innerHTML=warn.map(t=>`<div class="warnc"><b>Temps de travail</b><span>${esc(t)}</span></div>`).join('');
 }
-function applySkin(){document.documentElement.dataset.skin=U.skin||'clinique';for(const b of $('skins').children)b.setAttribute('aria-pressed',b.dataset.s===(U.skin||'clinique'))}
+function applySkin(){const k=U.skin||'vif';document.documentElement.dataset.skin=k;for(const b of $('skins').children)b.setAttribute('aria-pressed',b.dataset.s===k);const m=document.querySelector('meta[name=theme-color]');if(m&&k==='vif')m.content='#4338ca'}
 $('skins').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;U.skin=b.dataset.s;savePrefs();applySkin()});
 $('mPrev').onclick=()=>{if(U.mv==='m'){const [y,m]=meM.split('-').map(Number);meM=ymd(new Date(y,m-2,1)).slice(0,7)}else meW=addD(meW,-7);renderMe()};
 $('mNext').onclick=()=>{if(U.mv==='m'){const [y,m]=meM.split('-').map(Number);meM=ymd(new Date(y,m,1)).slice(0,7)}else meW=addD(meW,7);renderMe()};
