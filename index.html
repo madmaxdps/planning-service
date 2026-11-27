@@ -1168,7 +1168,7 @@ $('autoFill').onclick=()=>{
   undo=clone(S.plan);
   // compteurs de départ sur 3 mois glissants
   const months=new Set([...last3(rg[0].slice(0,7)),...last3(rg[rg.length-1].slice(0,7))]),cnt={},tot={};
-  const docs=S.docs.filter(d=>!d.tmp);
+  const docs=S.docs.filter(d=>!d.tmp),tmps=S.docs.filter(d=>d.tmp);let byTmp=0;
   for(const d of S.docs){cnt[d.id]={};tot[d.id]=0}
   for(const [k,day] of Object.entries(S.plan)){if(!months.has(k.slice(0,7)))continue;for(const [d,v] of Object.entries(day)){if(!cnt[d])continue;for(const pid of ids(v))cnt[d][pid]=(cnt[d][pid]||0)+1;if(worked(k,d))tot[d]++}}
   // poids de chacun = quotité × jours disponibles (congés et formations déduits)
@@ -1189,13 +1189,15 @@ $('autoFill').onclick=()=>{
     const need=[];for(const p of slots){const n=needOf(p,k);if(!n)continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<n;i++)need.push(p)}
     need.sort(()=>Math.random()-.5);
     for(const p of need){
-      const free=docs.filter(d=>isFree(k,d.id));
-      if(!free.length){miss++;continue}
+      // titulaires d'abord jusqu'à leur minimum, puis intérimaires disponibles, puis titulaires en heures en plus
+      const free=docs.filter(d=>isFree(k,d.id)),freeT=tmps.filter(d=>isFree(k,d.id)&&!PS(k,d.id).length);
+      if(!free.length&&!freeT.length){miss++;continue}
       const wk=monOf(k);
       const mxH=Math.max(...slots.map(x=>+x.h||0)),hp=hrs(p,k);
       const score=d=>{const df=defOf(wk,d.id),fl=freeLeft(wk,d.id,k),urg=df>0?df/Math.max(1,fl*(+S.dayH||11)):0,ko=df>0&&df-hp>(fl-1)*mxH;
         return (df>0?(ko?50:-100-50*urg):0)+(cnt[d.id][p.id]||0)/eff[d.id]+tot[d.id]/eff[d.id]*2-(get(k,d.id)?3:0)+Math.random()*.5};
-      const sc=new Map(free.map(d=>[d.id,score(d)])),best=free.reduce((a,b)=>sc.get(b.id)<sc.get(a.id)?b:a);
+      const sc=new Map(free.map(d=>[d.id,score(d)])),best=free.length?free.reduce((a,b)=>sc.get(b.id)<sc.get(a.id)?b:a):null;
+      if(freeT.length&&(!best||defOf(wk,best.id)<=0)){const t=freeT.reduce((a,b)=>{const x=tot[a.id]+Math.random(),y=tot[b.id]+Math.random();return y<x?b:a});put(k,t.id,p.id);filled++;byTmp++;continue}
       put(k,best.id,p.id);filled++;
     }
   }
@@ -1208,10 +1210,12 @@ $('autoFill').onclick=()=>{
       let guard=0;
       while(defOf(wk,d.id)>0&&guard++<7){
         const c=[0,1,2,3,4].map(i=>addD(wk,i)).filter(k=>inR.has(k)&&!isWE(k)&&isFree(k,d.id)&&pick(k));
+        if(!c.length&&tmps.length){let tk=null;for(let i=0;i<5&&!tk;i++){const k=addD(wk,i);if(!inR.has(k)||isWE(k)||!isFree(k,d.id))continue;for(const o of tmps){const th=ids(get(k,o.id)).filter(x=>P(x)?.auto&&P(x)?.cat==='travail');if(th.length){tk=[k,o.id,th[0]];break}}}
+          if(tk){const [k,o,pid]=tk,v=ids(get(k,o)).filter(x=>x!==pid).join('+');if(v)S.plan[k][o]=v;else delete S.plan[k][o];put(k,d.id,pid);tot[o]--;extra++;continue}}
         if(!c.length){
           // plus de jour libre : échanger une consultation (8 h) contre le bloc (11 h) d'un collègue qui garde son minimum
           let sw=null;for(let i=0;i<5&&!sw;i++){const k=addD(wk,i);if(!inR.has(k))continue;const mine=ids(get(k,d.id)).map(P).find(x=>x&&x.auto&&x.cat==='travail');if(!mine)continue;
-            for(const o of docs){if(o.id===d.id)continue;const th=ids(get(k,o.id)).map(P).find(x=>x&&x.auto&&x.cat==='travail');if(th&&hrs(th,k)>hrs(mine,k)&&defOf(wk,o.id)+hrs(th,k)-hrs(mine,k)<=0&&dayOk(mine,k)){sw=[k,o.id,mine.id,th.id];break}}}
+            for(const o of [...tmps,...docs]){if(o.id===d.id)continue;const th=ids(get(k,o.id)).map(P).find(x=>x&&x.auto&&x.cat==='travail');if(th&&hrs(th,k)>hrs(mine,k)&&(o.tmp||defOf(wk,o.id)+hrs(th,k)-hrs(mine,k)<=0)&&dayOk(mine,k)){sw=[k,o.id,mine.id,th.id];break}}}
           if(!sw){short.add(d.id+wk);break}
           const [k,o,a1,b1]=sw,rp=(v,x,y)=>ids(v).map(z=>z===x?y:z).join('+');(S.plan[k])[d.id]=rp(get(k,d.id),a1,b1);S.plan[k][o]=rp(get(k,o),b1,a1);extra++;continue}
         const k=c.reduce((a,b)=>{const x=present(a)+(get(a,d.id)?.5:0)+Math.random()*.9,y=present(b)+(get(b,d.id)?.5:0)+Math.random()*.9;return y<x?b:a});
@@ -1221,7 +1225,7 @@ $('autoFill').onclick=()=>{
   }
   S.ex=false;save();render();
   $('undoFill').hidden=!(filled||extra);
-  const L=[];if(filled)L.push(`${filled} poste(s) pourvu(s)`);if(extra)L.push(`${extra} journée(s) ajoutée(s) pour atteindre le temps hebdomadaire de chacun`);
+  const L=[];if(filled)L.push(`${filled} poste(s) pourvu(s)${byTmp?` dont ${byTmp} par des intérimaires`:''}`);if(extra)L.push(`${extra} journée(s) ajoutée(s) pour atteindre le temps hebdomadaire de chacun`);
   $('fillMsg').textContent=(L.length?L.join(', ')+', en équilibrant les jours de présence selon la quotité.':'Tout est déjà pourvu et chacun a son temps sur la période.')+(miss?` ${miss} poste(s) sans médecin disponible.`:'')+(short.size?` ${short.size} semaine(s) restent sous le minimum faute de jour libre.`:'')+' Vous pouvez ensuite compléter ou corriger à la main. Gardes, SSPI, DIVLD, TNC, repos et congés déjà saisis n\'ont pas été touchés.';
 };
 $('perBtn').onclick=()=>{
@@ -1694,7 +1698,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.6 (27 nov.)';
+const APPV='2027.7 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
