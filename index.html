@@ -934,8 +934,10 @@ function coverage(k){
   return out;
 }
 const pctOf=id=>{const p=+(DOC(id)?.pct);return p>0&&p<=100?p/100:1};
-function weekH(mon,d){let h=0,abs=0,any=false;for(let i=0;i<7;i++){const k=addD(mon,i);for(const p of PS(k,d)){any=true;h+=hrs(p,k);if(p.cat==='absence')abs++}}
-  return {h,any,target:Math.round(Math.max(0,(+S.minH||0)*pctOf(d)-abs*(+S.dayH||0)))}}
+function weekH(mon,d){let h=0,abs=0,any=false;for(let i=0;i<7;i++){const k=addD(mon,i),ps=PS(k,d);if(ps.length)any=true;if(ps.some(p=>p.cat==='absence')){if(!isWE(k))abs++;continue}for(const p of ps)h+=hrs(p,k)}
+  return {h,any,abs,target:Math.round(Math.max(0,(+S.minH||0)*pctOf(d)*(1-Math.min(5,abs)/5)))}}
+// disponibilité sur une période : jours ouvrés hors congés/formation (les congés ne créent pas de dette)
+function availOf(months,d){let n=0;for(const ym of months){const [y,m]=ym.split('-').map(Number),N=new Date(y,m,0).getDate();for(let i=1;i<=N;i++){const k=ym+'-'+pad(i);if(isWE(k))continue;if(!PS(k,d).some(p=>p.cat==='absence'))n++}}return n}
 function capa(mon,d){const w=weekH(mon,d);let ind=0,free=0;for(let i=0;i<7;i++){const k=addD(mon,i),ps=PS(k,d).filter(p=>p.cat!=='autre');if(ps.some(p=>p.cat==='indispo'))ind++;if(!ps.length&&!isWE(k))free++}return {...w,ind,max:w.h+free*(+S.dayH||11)}}
 const monOf=k=>addD(k,-((D(k).getDay()+6)%7));
 function warnsFor(k,d){
@@ -994,9 +996,9 @@ const last3=ym=>{const [y,m]=ym.split('-').map(Number);return new Set([0,1,2].ma
 const worked=(k,d)=>PS(k,d).some(p=>p.cat==='travail'||p.cat==='garde');
 function gap3(ym){
   const ms=last3(ym),days={};let tot=0,sp=0;
-  for(const d of S.docs.filter(x=>!x.tmp)){days[d.id]=0;sp+=pctOf(d.id)}
+  const av={};for(const d of S.docs.filter(x=>!x.tmp)){days[d.id]=0;av[d.id]=pctOf(d.id)*availOf([...ms],d.id);sp+=av[d.id]}
   for(const [k,day] of Object.entries(S.plan)){if(!ms.has(k.slice(0,7)))continue;for(const d in day)if(d in days&&worked(k,d)){days[d]++;tot++}}
-  const out={};for(const d of S.docs)out[d.id]=d.tmp?{n:0,gap:0}:{n:days[d.id],gap:sp?Math.round((days[d.id]-tot*pctOf(d.id)/sp)*10)/10:0};return out;
+  const out={};for(const d of S.docs)out[d.id]=d.tmp?{n:0,gap:0}:{n:days[d.id],gap:sp?Math.round((days[d.id]-tot*av[d.id]/sp)*10)/10:0};return out;
 }
 function renderStats(){
   const d=D(cur),y=d.getFullYear(),m=d.getMonth(),pre=scope==='m'?y+'-'+pad(m+1)+'-':y+'-';
@@ -1007,7 +1009,7 @@ function renderStats(){
       r.h+=hrs(p,k);if(p.cat==='garde'){r.g++;if(isWE(k))r.gwe++}else if(p.cat==='astreinte')r.ast++;else if(p.cat==='travail')r.trav++;else if(p.cat==='absence')r.abs++}}
     r.gap=G3[doc.id].gap;return r});
   const mx=Math.max(1,...rows.map(r=>r.g));
-  $('stats').innerHTML='<thead><tr><th>Médecin</th><th>Gardes</th><th>dont WE/fériés</th><th>Astr.</th><th>Jours trav.</th><th>Absences</th><th>Heures</th><th title="Jours travaillés sur les 3 derniers mois, comparés à la part attendue selon la quotité">Écart 3 mois</th></tr></thead><tbody>'+
+  $('stats').innerHTML='<thead><tr><th>Médecin</th><th>Gardes</th><th>dont WE/fériés</th><th>Astr.</th><th>Jours trav.</th><th>Absences</th><th>Heures</th><th title="Jours travaillés sur les 3 derniers mois, comparés à la part attendue selon la quotité et les jours disponibles (congés et formations déduits)">Écart 3 mois</th></tr></thead><tbody>'+
    rows.map(r=>`<tr><td>${esc(r.name)}${r.pct&&r.pct<100?` <small style="color:var(--mut)">${r.pct} %</small>`:''}</td><td class="g">${r.g}<span class="bar" style="width:${r.g/mx*40}px"></span></td><td>${r.gwe}</td><td>${r.ast}</td><td>${r.trav}</td><td>${r.abs}</td><td>${r.h}</td><td style="color:${Math.abs(r.gap)>=2?(r.gap>0?'var(--red)':'#b7791f'):'var(--ok)'};font-weight:700">${r.gap>0?'+':''}${r.gap} j</td></tr>`).join('')+'</tbody>';
 }
 
@@ -1130,6 +1132,7 @@ $('autoFill').onclick=()=>{
   const rg=range(),months=new Set([...last3(rg[0].slice(0,7)),...last3(rg[rg.length-1].slice(0,7))]),cnt={},tot={};
   for(const d of S.docs){cnt[d.id]={};tot[d.id]=0}
   for(const [k,day] of Object.entries(S.plan)){if(!months.has(k.slice(0,7)))continue;for(const [d,v] of Object.entries(day)){if(!cnt[d])continue;for(const pid of ids(v))cnt[d][pid]=(cnt[d][pid]||0)+1;if(worked(k,d))tot[d]++}}
+  const W=Math.max(1,...S.docs.map(d=>availOf([...months],d.id))),eff={};for(const d of S.docs)eff[d.id]=Math.max(.05,pctOf(d.id)*availOf([...months],d.id)/W);
   let filled=0,miss=0;
   for(const k of days){
     const need=[];for(const p of slots){const n=needOf(p,k);if(!n)continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<n;i++)need.push(p)}
@@ -1139,7 +1142,7 @@ $('autoFill').onclick=()=>{
       const free=S.docs.filter(d=>{if(d.tmp)return false;const ps=PS(k,d.id);const m=ps.filter(x=>x.cat!=='autre');return !m.length||(m.length===1&&m[0].cat==='garde')});
       if(!free.length){miss++;continue}
       const wk=monOf(k);
-      const score=d=>{const q=pctOf(d.id),w=weekH(wk,d.id);return (cnt[d.id][p.id]||0)/q*3+tot[d.id]/q*2+(w.h>=w.target?4:0)-(get(k,d.id)?5:0)+Math.random()};
+      const score=d=>{const q=pctOf(d.id),w=weekH(wk,d.id);return (cnt[d.id][p.id]||0)/eff[d.id]*3+tot[d.id]/eff[d.id]*2+(w.h>=w.target?4:0)-(get(k,d.id)?5:0)+Math.random()};
       const best=free.reduce((a,b)=>score(b)<score(a)?b:a);
       (S.plan[k]=S.plan[k]||{})[best.id]=combine(get(k,best.id),p.id);cnt[best.id][p.id]=(cnt[best.id][p.id]||0)+1;tot[best.id]++;filled++;
     }

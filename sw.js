@@ -1,5 +1,5 @@
 // Cache hors ligne : l'appli s'ouvre sans réseau. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = 'planning-service-v19';
+const VERSION = 'planning-service-v20';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './supabase.js'];
 const CDN = ['fonts.googleapis.com', 'fonts.gstatic.com'];
