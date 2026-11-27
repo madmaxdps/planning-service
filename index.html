@@ -487,6 +487,10 @@ table.g2{border-collapse:separate;border-spacing:0}
 :root[data-skin=jade] .big,:root[data-skin=jade] #autoFill{background:linear-gradient(135deg,#065f46,#047857)!important;color:#fff!important}
 :root[data-skin=jade] .cc.td{box-shadow:inset 0 0 0 2px #f59e0b}
 :root[data-skin=jade] .dcard.today{box-shadow:0 0 0 3px var(--bg),0 0 0 5px #f59e0b}
+.clf{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}.clf label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}.clf .in{height:42px;width:auto}.clf #clW{flex:1 1 140px}
+.clrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px;border-radius:12px;background:color-mix(in srgb,var(--red) 8%,var(--card));margin-bottom:6px;font-size:14px}
+.g2 .clz{display:block;font-size:9px;font-weight:800;color:#fff;background:#64748b;border-radius:6px;padding:0 3px;margin-top:2px;text-transform:uppercase;line-height:14px}
+@media print{.pt thead em{font-style:normal;font-size:6.5pt;color:#b91c1c;font-weight:700}}
 </style>
 </head>
 <body>
@@ -577,6 +581,9 @@ table.g2{border-collapse:separate;border-spacing:0}
   <p class="note" id="roomsInfo"></p>
   <div id="rooms"></div>
   <div class="acts"><input class="in" id="newRoom" placeholder="Nom de la salle" maxlength="40" style="flex:1 1 180px;height:44px"><button class="tb" id="addRoom">Ajouter</button></div>
+  <p class="grp">Fermetures institutionnelles</p>
+  <div class="clf"><select class="in" id="clR" aria-label="Salle fermée"></select><label>Du <input class="in" type="date" id="clF"></label><label>au <input class="in" type="date" id="clT"></label><input class="in" id="clW" placeholder="Motif (facultatif)" maxlength="40"><button class="tb" id="addCl">Ajouter la fermeture</button></div>
+  <div id="cls"></div>
   <p class="note">Cochez les salles ouvertes : elles s'affichent sur les jours de bloc. La répartition place chaque jour le nombre d'anesthésistes indiqué, quel que soit le nombre de salles ouvertes.</p>
 </details>
 <details class="adm">
@@ -704,16 +711,16 @@ const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[]
   if(!x.v5){if(!x.posts.some(p=>p.id==='reu'))x.posts.push({id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'travail',h:0,nw:0,ne:0,auto:false});x.v5=true}
   if(!x.v4){for(const p of x.posts)if(p.id==='rs'&&p.code==='RS')p.code='RQ';x.v4=true}
   if(!x.v3){for(const p of x.posts)if(p.id==='sspi'){p.auto=false;p.nw=0}x.v3=true}
-  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v13){const t=x.posts.find(p=>p.id==='tnc');if(t){if(+t.h===11)t.h=8;if(t.t==='8:00–19:00')t.t='9:00–17:00'}x.v13=true}if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'9:00–17:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
+  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v13){const t=x.posts.find(p=>p.id==='tnc');if(t){if(+t.h===11)t.h=8;if(t.t==='8:00–19:00')t.t='9:00–17:00'}x.v13=true}if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.closures))x.closures=[];if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'9:00–17:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
 const ls=(k,v)=>{try{if(v===undefined){const r=localStorage.getItem(k);return r?JSON.parse(r):null}localStorage.setItem(k,JSON.stringify(v))}catch(e){mem=false;return null}};
 let isSec=false,S,U,mem=true,canEdit=true,canAdmin=true,sb=null,prof=null,lastAt=null,pushT=null,prefT=null,base={},baseCfg='';
-const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
+const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,closures:x.closures,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
 if(REMOTE){const c=ls(KEY+'-cache');S=norm(c&&c.S);U=Object.assign({colors:{}},c&&c.U)}
 else{S=ls(KEY);if(!S||!S.docs||S.ex)S=sample();S=norm(S);U=Object.assign({me:S.me||'d0',mode:'w',colors:{}},ls(KEY+'-prefs'));delete S.me}
 const tint=c=>`background:color-mix(in srgb,${c} ${fg(c)==='#ffffff'?20:38}%,var(--card));color:color-mix(in srgb,${c} ${fg(c)==='#ffffff'?'var(--tm)':'30%'},var(--ink))`;
 const okc=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
 const SKC={"lagon": {"b1": "#2563eb", "sspi": "#0d9488", "cs": "#7c3aed", "divld": "#db2777", "gm": "#e11d48", "gu": "#f97316", "rs": "#a5b4c4", "tnc": "#65a30d", "ind": "#64748b", "reu": "#0ea5e9", "off": "#cbd5e1", "ast": "#f59e0b", "ca": "#10b981", "for": "#8b5cf6", "rec": "#6ee7b7"}, "soleil": {"b1": "#6366f1", "sspi": "#14b8a6", "cs": "#8b5cf6", "divld": "#ec4899", "gm": "#e11d48", "gu": "#ea580c", "rs": "#fda4af", "tnc": "#84cc16", "ind": "#78716c", "reu": "#06b6d4", "off": "#e7e5e4", "ast": "#f59e0b", "ca": "#22c55e", "for": "#a78bfa", "rec": "#86efac"}, "jade": {"b1": "#1d4ed8", "sspi": "#0f766e", "cs": "#7c3aed", "divld": "#be185d", "gm": "#dc2626", "gu": "#ea580c", "rs": "#a8a29e", "tnc": "#4d7c0f", "ind": "#57534e", "reu": "#0891b2", "off": "#d6d3d1", "ast": "#d97706", "ca": "#16a34a", "for": "#9333ea", "rec": "#86efac"}};
-const col=p=>okc(U.colors&&U.colors[p.id])?U.colors[p.id]:okc(SKC[U.skin||'vif']?.[p.id])?SKC[U.skin||'vif'][p.id]:okc(p.color)?p.color:'#888888';
+const col=p=>okc(U.colors&&U.colors[p.id])?U.colors[p.id]:okc(SKC[U.skin||'lagon']?.[p.id])?SKC[U.skin||'lagon'][p.id]:okc(p.color)?p.color:'#888888';
 const sync=(t,err)=>{$('sync').textContent=t;$('sync').classList.toggle('err',!!err)};
 function save(){
   if(!REMOTE){ls(KEY,S);return}
@@ -738,7 +745,7 @@ function fer(y){if(fc[y])return fc[y];const a=y%19,b=Math.floor(y/100),c=y%100,d
 const isFer=k=>fer(+k.slice(0,4)).has(k);
 const isWE=k=>{const w=D(k).getDay();return w===0||w===6||isFer(k)};
 const dayOk=(p,k)=>!Array.isArray(p.days)||p.days.includes(D(k).getDay())||(Array.isArray(p.extra)&&p.extra.includes(k));
-const needOf=(p,k)=>isWE(k)?(+p.ne||0):dayOk(p,k)?(+p.nw||0):0;
+const needOf=(p,k)=>typeof BLOC==='function'&&BLOC()&&p.id===BLOC().id&&blocClosed(k)?0:isWE(k)?(+p.ne||0):dayOk(p,k)?(+p.nw||0):0;
 const get=(k,d)=>S.plan[k]?.[d];
 const ids=v=>(v||'').split('+').filter(Boolean);
 const PS=(k,d)=>ids(get(k,d)).map(P).filter(Boolean);
@@ -778,6 +785,7 @@ function capa(mon,d){const w=weekH(mon,d);let ind=0,free=0;for(let i=0;i<7;i++){
 const monOf=k=>addD(k,-((D(k).getDay()+6)%7));
 function warnsFor(k,d){
   const w=[];if(!get(k,d))return w;
+  if(BLOC()&&ids(get(k,d)).includes(BLOC().id)&&blocClosed(k))w.push('bloc fermé ce jour (fermeture institutionnelle)');
   if(has(addD(k,-1),d,'garde')&&(has(k,d,'travail')||has(k,d,'garde')))w.push('poste le lendemain d\'une garde');
   if(ids(get(k,d)).some(x=>P(x)&&/^off$/i.test(P(x).code))){const wh=weekH(monOf(k),d);if(wh.h<wh.target)w.push(`plage OFF posée alors que la semaine n'atteint que ${wh.h} h sur ${wh.target} h`)}
   return w;
@@ -793,7 +801,7 @@ function render(){
   let h=`<table class="g g2 ${mode==='w'?'wk':'mo'}"><thead><tr><th class="nm"><span class="sr">Médecin</span></th>`;
   for(const k of days){
     const cv=coverage(k),miss=cv.reduce((s,c)=>s+Math.max(0,c.need-c.who.length),0),dd=D(k);
-    h+=`<th class="${isWE(k)?'we':''} ${isFer(k)?'fer':''} ${k===TK?'today':''}"><button data-day="${k}" aria-label="Couverture du ${dd.getDate()} ${MO[dd.getMonth()]}${miss?', '+miss+' poste(s) à pourvoir':''}"><span class="dw">${DW[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span><span class="cv2 ${miss?'ko':''}">${miss?miss:''}</span></button></th>`;
+    h+=`<th class="${isWE(k)?'we':''} ${isFer(k)?'fer':''} ${k===TK?'today':''}"><button data-day="${k}" aria-label="Couverture du ${dd.getDate()} ${MO[dd.getMonth()]}${miss?', '+miss+' poste(s) à pourvoir':''}"><span class="dw">${DW[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span><span class="cv2 ${miss?'ko':''}">${miss?miss:''}</span>${closedTxt(k)?`<span class="clz" title="${esc(closedTxt(k))}">${blocClosed(k)?'fermé':'−'+(S.rooms||[]).filter(r=>r.on&&closedOn(k,r.id)).length}</span>`:''}</button></th>`;
   }
   h+='</tr></thead><tbody>';
   for(const doc of S.docs){
@@ -902,8 +910,19 @@ document.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]'
 
 const BLOC=()=>P('b1')||S.posts.find(p=>p.auto&&p.cat==='travail'&&p.id!=='cs');
 const openRooms=()=>(S.rooms||[]).filter(r=>r.on).map(r=>r.name);
-const roomsOf=p=>p&&BLOC()&&p.id===BLOC().id?openRooms():[];
+const closedOn=(k,r)=>(S.closures||[]).some(c=>c.from<=k&&k<=(c.to||c.from)&&(c.r==='bloc'||c.r===r));
+const roomsOn=k=>(S.rooms||[]).filter(r=>r.on&&!closedOn(k,r.id)).map(r=>r.name);
+const blocClosed=k=>(S.rooms||[]).some(r=>r.on)?!roomsOn(k).length:closedOn(k,'bloc');
+const closedTxt=k=>{if(blocClosed(k))return 'Bloc fermé';const n=(S.rooms||[]).filter(r=>r.on&&closedOn(k,r.id)).length;return n?n+' salle'+(n>1?'s':'')+' fermée'+(n>1?'s':''):''};
+const roomsOf=(p,k)=>p&&BLOC()&&p.id===BLOC().id?(k?roomsOn(k):openRooms()):[];
+function renderCl(){
+  $('clR').innerHTML='<option value="bloc">Bloc entier</option>'+(S.rooms||[]).map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('');
+  const nm=r=>r==='bloc'?'Bloc entier':((S.rooms||[]).find(x=>x.id===r)||{name:'Salle supprimée'}).name,f=k=>D(k).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  const L=(S.closures||[]).map((c,i)=>({c,i})).filter(o=>(o.c.to||o.c.from)>=addD(TK,-60)).sort((a,b)=>a.c.from<b.c.from?-1:1);
+  $('cls').innerHTML=L.length?L.map(({c,i})=>`<div class="clrow"><span><b>${esc(nm(c.r))}</b> · ${c.to&&c.to!==c.from?'du '+f(c.from)+' au '+f(c.to):'le '+f(c.from)}${c.why?' · '+esc(c.why):''}</span><button class="ib" data-delc="${i}" aria-label="Supprimer cette fermeture" style="height:36px;font-size:14px">✕</button></div>`).join(''):'<p class="note">Aucune fermeture prévue.</p>';
+}
 function renderRooms(){
+  renderCl();
   const b=BLOC();$('blocN').value=b?+b.nw||0:0;$('blocN').disabled=!b;
   const n=openRooms().length,a=b?+b.nw||0:0;
   $('roomsInfo').textContent=b?`${n} salle${n>1?'s':''} ouverte${n>1?'s':''} pour ${a} anesthésiste${a>1?'s':''} par jour.`:'Aucun poste de bloc : ajoutez un poste « Bloc » dans Postes et besoins.';
@@ -942,7 +961,7 @@ $('autoFill').onclick=()=>{
   for(const [k,day] of Object.entries(S.plan)){if(!months.has(k.slice(0,7)))continue;for(const [d,v] of Object.entries(day)){if(!cnt[d])continue;for(const pid of ids(v))cnt[d][pid]=(cnt[d][pid]||0)+1;if(worked(k,d))tot[d]++}}
   let filled=0,miss=0;
   for(const k of days){
-    const need=[];for(const p of slots){if(!dayOk(p,k))continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<+p.nw;i++)need.push(p)}
+    const need=[];for(const p of slots){const n=needOf(p,k);if(!n)continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<n;i++)need.push(p)}
     need.sort(()=>Math.random()-.5);
     for(const p of need){
       // libres : rien ce jour-là, ou seulement une garde de nuit (on privilégie alors une journée avant la garde)
@@ -991,6 +1010,9 @@ $('posts').addEventListener('click',e=>{const x=e.target.closest('[data-xdel]');
 $('blocN').onchange=e=>{const b=BLOC();if(!b)return;b.nw=Math.max(0,Math.min(10,Math.round(+e.target.value||0)));save();renderEditors();render()};
 $('rooms').addEventListener('change',e=>{const r=e.target.closest('[data-r]');if(!r)return;const x=S.rooms[+r.dataset.r];if(e.target.dataset.rf==='on')x.on=e.target.checked;else x.name=e.target.value.trim().slice(0,40)||x.name;save();renderRooms();render()});
 $('rooms').addEventListener('click',e=>{const b=e.target.closest('[data-delr]');if(!b||!twoTap(b,'Sûr ?'))return;S.rooms.splice(+b.dataset.delr,1);save();renderRooms();render()});
+$('addCl').onclick=()=>{const f=$('clF').value,t=$('clT').value||f;if(!/^\d{4}-\d{2}-\d{2}$/.test(f)){$('clF').focus();return}
+  const c={r:$('clR').value,from:f<=t?f:t,to:f<=t?t:f};const w=$('clW').value.trim().slice(0,40);if(w)c.why=w;S.closures=S.closures||[];S.closures.push(c);$('clF').value=$('clT').value=$('clW').value='';save();renderRooms();render()};
+$('cls').addEventListener('click',e=>{const b=e.target.closest('[data-delc]');if(!b||!twoTap(b,'Sûr ?'))return;S.closures.splice(+b.dataset.delc,1);save();renderRooms();render()});
 $('addRoom').onclick=()=>{const n=$('newRoom').value.trim().slice(0,40);if(!n)return;S.rooms.push({id:'r'+Date.now().toString(36),name:n,on:true});$('newRoom').value='';save();renderRooms();render()};
 $('addP').onclick=()=>{S.posts.push({id:'p'+Date.now().toString(36),code:'NEW',label:'Nouveau poste',color:'#888888',cat:'travail',h:8,nw:0,ne:0});save();renderEditors();render()};
 $('autoRS').onchange=e=>{S.autoRS=e.target.checked;save()};
@@ -1036,7 +1058,7 @@ function dayCard(k,d){
   if(!main)return `<button class="dcard free${isWE(k)?' we':''}${td?' today':''}" id="dc-${k}" data-k="${k}">${tag}<div class="h"><div class="ic">${icoOf(null)}</div><div><div class="tt">Libre</div><div class="ss">${lab}${canEdit?' · touchez pour saisir':''}</div></div></div>${wr}</button>`;
   const c=col(main),lt=fg(c)!=='#ffffff',rest=main.cat==='garde'?[]:g,tm=tOf(main,k);
   const title=(main.cat==='garde'||main.cat==='autre'?[main]:day).map(p=>esc(p.label)).join(' + ');
-  return `<button class="dcard${lt?' lt':''}${td?' today':''}" id="dc-${k}" data-k="${k}" style="${grad(c)}">${tag}<div class="h"><div class="ic">${icoOf(main)}</div><div><div class="tt">${title}</div><div class="ss">${lab}${tm?' · '+esc(tm):''}</div></div>${hh?`<span class="hh">${hh} h</span>`:''}</div>${rest.map(p=>`<div class="nn">${icoOf(p)}puis ${esc(p.label)} · ${esc(tOf(p,k))}</div>`).join('')}${(()=>{const ch=[...day.flatMap(roomsOf),...(main.cat==='autre'?x.slice(1):x).map(p=>p.label)];return ch.length?`<div class="xs">${ch.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''})()}${wr}</button>`;
+  return `<button class="dcard${lt?' lt':''}${td?' today':''}" id="dc-${k}" data-k="${k}" style="${grad(c)}">${tag}<div class="h"><div class="ic">${icoOf(main)}</div><div><div class="tt">${title}</div><div class="ss">${lab}${tm?' · '+esc(tm):''}</div></div>${hh?`<span class="hh">${hh} h</span>`:''}</div>${rest.map(p=>`<div class="nn">${icoOf(p)}puis ${esc(p.label)} · ${esc(tOf(p,k))}</div>`).join('')}${(()=>{const ch=[...day.flatMap(p=>roomsOf(p,k)),...(main.cat==='autre'?x.slice(1):x).map(p=>p.label)];return ch.length?`<div class="xs">${ch.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''})()}${wr}</button>`;
 }
 function weekView(d){
   const days=Array.from({length:7},(_,i)=>addD(meW,i)),w=weekH(meW,d),hb=hoursBy(days,d),den=Math.max(w.h,w.target,1);
@@ -1066,7 +1088,7 @@ function monthView(d){
   const bars=`<div class="wbars"><span class="ln" style="bottom:${(+S.minH||42)*pctOf(d)/mx*70}px"></span>${wk.map(o=>`<i style="height:${Math.max(4,o.w.h/mx*70)}px;background:${!o.w.h?'var(--soft)':o.w.h>=o.w.target?'var(--acc)':'#e39b2d'}"></i>`).join('')}</div><div class="wbl">${wk.map(o=>`<span>S${isoW(o.mon)}</span>`).join('')}</div>`;
   const tiles=`<div class="two"><div class="tile"><h4>Ce mois-ci</h4><div class="dn">${donut}<div><div class="v">${tot} h</div><small>${ng} garde${ng>1?'s':''}${na?'<br>'+na+' j d\'absence':''}</small></div></div></div><div class="tile"><h4>Par semaine</h4>${bars}</div></div>`;
   const ps=PS(meSel,d),dd=D(meSel);
-  const det=`<div class="det"><div class="dh">${dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}${meSel===TK?' · aujourd\'hui':''}</div>${ps.length?ps.map(p=>`<div class="r"><span class="i2" style="${grad(col(p))}">${icoOf(p)}</span><span><b>${esc(p.label)}</b><small>${esc([tOf(p,meSel),...roomsOf(p)].filter(Boolean).join(' · '))||'&nbsp;'}</small></span><span>${hrs(p,meSel)?hrs(p,meSel)+' h':''}</span></div>`).join(''):'<div class="r"><span class="i2" style="background:var(--soft);color:var(--mut)">'+icoOf(null)+'</span><span><b>Libre</b></span><span></span></div>'}${warnsFor(meSel,d).length?`<p class="note" style="color:var(--red);margin:6px 0 0">${esc(warnsFor(meSel,d).join(' ; '))}</p>`:''}${canEdit?`<button class="ed" data-k="${meSel}">Modifier ce jour</button>`:''}</div>`;
+  const det=`<div class="det"><div class="dh">${dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}${meSel===TK?' · aujourd\'hui':''}</div>${ps.length?ps.map(p=>`<div class="r"><span class="i2" style="${grad(col(p))}">${icoOf(p)}</span><span><b>${esc(p.label)}</b><small>${esc([tOf(p,meSel),...roomsOf(p,meSel)].filter(Boolean).join(' · '))||'&nbsp;'}</small></span><span>${hrs(p,meSel)?hrs(p,meSel)+' h':''}</span></div>`).join(''):'<div class="r"><span class="i2" style="background:var(--soft);color:var(--mut)">'+icoOf(null)+'</span><span><b>Libre</b></span><span></span></div>'}${warnsFor(meSel,d).length?`<p class="note" style="color:var(--red);margin:6px 0 0">${esc(warnsFor(meSel,d).join(' ; '))}</p>`:''}${canEdit?`<button class="ed" data-k="${meSel}">Modifier ce jour</button>`:''}</div>`;
   return `<div class="calm">${g}</div>`+det+tiles;
 }
 function renderMe(){
@@ -1085,7 +1107,7 @@ function renderMe(){
   for(const mon of mons.filter(m=>addD(m,6)>=TK)){const c=capa(mon,me.id);if(c.ind&&c.max<c.target)warn.push(`Semaine du ${D(mon).getDate()} ${MO[D(mon).getMonth()]} : avec ${c.ind} jour(s) d'indisponibilité, vous ne pourrez atteindre que ${c.max} h sur ${c.target} h.`)}
   $('mWarn').innerHTML=warn.map(t=>`<div class="warnc"><b>Temps de travail</b><span>${esc(t)}</span></div>`).join('');
 }
-function applySkin(){const k=U.skin||'vif';document.documentElement.dataset.skin=k;for(const b of $('skins').children)b.setAttribute('aria-pressed',b.dataset.s===k);const m=document.querySelector('meta[name=theme-color]');const TC={vif:'#4338ca',lagon:'#0284c7',soleil:'#f43f5e',jade:'#065f46'};if(m&&TC[k])m.content=TC[k];if(typeof render==='function'&&S){try{render();if(tab==='Me')renderMe()}catch(e){}}}
+function applySkin(){const k=U.skin||'lagon';document.documentElement.dataset.skin=k;for(const b of $('skins').children)b.setAttribute('aria-pressed',b.dataset.s===k);const m=document.querySelector('meta[name=theme-color]');const TC={vif:'#4338ca',lagon:'#0284c7',soleil:'#f43f5e',jade:'#065f46'};if(m&&TC[k])m.content=TC[k];if(typeof render==='function'&&S){try{render();if(tab==='Me')renderMe()}catch(e){}}}
 $('skins').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;U.skin=b.dataset.s;savePrefs();applySkin()});
 $('mPrev').onclick=()=>{if(U.mv==='m'){const [y,m]=meM.split('-').map(Number);meM=ymd(new Date(y,m-2,1)).slice(0,7)}else meW=addD(meW,-7);renderMe()};
 $('mNext').onclick=()=>{if(U.mv==='m'){const [y,m]=meM.split('-').map(Number);meM=ymd(new Date(y,m,1)).slice(0,7)}else meW=addD(meW,7);renderMe()};
@@ -1098,7 +1120,7 @@ $('printBtn').onclick=()=>{buildPrint();setTimeout(()=>window.print(),50)};
 function buildPrint(){
   const days=range(),wk=days.length<=7,used=new Set();
   const title=wk?'Planning de l\'équipe · semaine du '+D(days[0]).getDate()+' '+MO[D(days[0]).getMonth()]+' au '+D(days[6]).getDate()+' '+MO[D(days[6]).getMonth()]+' '+D(days[6]).getFullYear():'Planning de l\'équipe · '+MO[D(days[0]).getMonth()]+' '+D(days[0]).getFullYear();
-  let h=`<h1>${esc(title)}</h1><table class="pt ${wk?'pw':'pm'}"><thead><tr><th></th>${days.map(k=>{const d=D(k);return `<th class="${isWE(k)?'we':''}">${wk?cap(DW[d.getDay()])+'<br>':DW[d.getDay()].charAt(0).toUpperCase()+'<br>'}${d.getDate()}${wk?' '+MOS[d.getMonth()]:''}</th>`}).join('')}</tr></thead><tbody>`;
+  let h=`<h1>${esc(title)}</h1><table class="pt ${wk?'pw':'pm'}"><thead><tr><th></th>${days.map(k=>{const d=D(k);return `<th class="${isWE(k)?'we':''}">${wk?cap(DW[d.getDay()])+'<br>':DW[d.getDay()].charAt(0).toUpperCase()+'<br>'}${d.getDate()}${wk?' '+MOS[d.getMonth()]:''}${closedTxt(k)?`<br><em>${wk?esc(closedTxt(k)):'F'}</em>`:''}</th>`}).join('')}</tr></thead><tbody>`;
   for(const doc of S.docs){h+=`<tr><th>${esc(doc.name)}${doc.tmp?' <small>(intérim)</small>':''}${(+doc.pct||100)<100?' <small>'+doc.pct+' %</small>':''}</th>`;
     for(const k of days){const ps=PS(k,doc.id);ps.forEach(p=>used.add(p.id));h+=`<td class="${isWE(k)?'we':''}">${ps.map(p=>`<span style="background:${esc(col(p))};color:${fg(col(p))}">${esc(wk?p.label.length>14?p.code:p.label:p.code)}${p.cat==='garde'&&wk?(isWE(k)?' 24 h':' nuit'):''}</span>`).join('')}</td>`}
     h+='</tr>'}
@@ -1126,7 +1148,7 @@ async function pushRemote(){
   for(const [k,ds] of Object.entries(dels)){const {error}=await sb.from('assignments').delete().eq('day',k).in('doc_id',ds);if(error)err=error}
   if(!err)base=clone(S.plan);
   if(!err&&canAdmin&&cfgOf(S)!==baseCfg){
-    const at=new Date().toISOString(),data={docs:S.docs,posts:S.posts,rooms:S.rooms,minH:S.minH,dayH:S.dayH,autoRS:S.autoRS};
+    const at=new Date().toISOString(),data={docs:S.docs,posts:S.posts,rooms:S.rooms,closures:S.closures,minH:S.minH,dayH:S.dayH,autoRS:S.autoRS};
     const r=await sb.from('service_state').update({data,updated_at:at,updated_by:prof.id}).eq('id',1).eq('updated_at',lastAt).select('updated_at');
     if(r.error)err=r.error;else if(!r.data.length){await pull();return sync('Les réglages avaient été modifiés sur un autre appareil : version la plus récente rechargée.',true)}
     else{lastAt=r.data[0].updated_at;baseCfg=cfgOf(S)}
