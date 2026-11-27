@@ -582,6 +582,9 @@ table.g2{border-collapse:separate;border-spacing:0}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .cc.td{box-shadow:inset 0 0 0 2px var(--acc)}
 #mTitle{font-size:22px!important;line-height:1.2}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dcard.today{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--acc)}
+#dNote .nf{margin-top:6px}#dNote .grp{margin:8px 0 6px}
+#dNote .in{height:44px;width:100%}
+.nt2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.nt2 label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -724,6 +727,7 @@ table.g2{border-collapse:separate;border-spacing:0}
 <dialog id="dCell" class="sheet">
   <h2 id="dCellT"></h2>
   <div id="dOpts"></div>
+  <div id="dNote"></div>
   <div class="acts"><button class="tb" id="dClear">Tout retirer</button><span style="flex:1"></span><button class="tb" id="dClose" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700;min-width:120px">Terminé</button></div>
 </dialog>
 <dialog id="dPer" class="sheet">
@@ -803,7 +807,7 @@ function sample(){
   return {docs,posts:clone(DEF_POSTS),plan,autoRS:true,ex:true,minH:42,dayH:11};
 }
 const REMOTE=!!(CFG.url&&CFG.key);
-const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[];if(!Array.isArray(x.posts))x.posts=clone(DEF_POSTS);if(!x.plan||typeof x.plan!=='object')x.plan={};if(x.autoRS==null)x.autoRS=true;if(!x.v8){if(!x.posts.some(p=>p.id==='ind'))x.posts.push({id:'ind',code:'IND',label:'Indisponible',color:'#7c8798',cat:'indispo',h:0,nw:0,ne:0,auto:false});x.v8=true}
+const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[];if(!Array.isArray(x.posts))x.posts=clone(DEF_POSTS);if(!x.plan||typeof x.plan!=='object')x.plan={};if(!x.notes||typeof x.notes!=='object')x.notes={};if(x.autoRS==null)x.autoRS=true;if(!x.v8){if(!x.posts.some(p=>p.id==='ind'))x.posts.push({id:'ind',code:'IND',label:'Indisponible',color:'#7c8798',cat:'indispo',h:0,nw:0,ne:0,auto:false});x.v8=true}
   if(!x.v7){if(!x.posts.some(p=>p.id==='tnc'))x.posts.push({id:'tnc',code:'TNC',label:'Temps non clinique',color:'#7a8f3a',cat:'travail',h:11,nw:0,ne:0,auto:false});x.v7=true}
   if(!x.v6){for(const p of x.posts)if(p.id==='reu')p.cat='autre';if(!x.posts.some(p=>p.id==='off'))x.posts.push({id:'off',code:'OFF',label:'Plage OFF',color:'#c9d3d8',cat:'repos',h:0,nw:0,ne:0,auto:false});x.v6=true}
   if(!x.v5){if(!x.posts.some(p=>p.id==='reu'))x.posts.push({id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'travail',h:0,nw:0,ne:0,auto:false});x.v5=true}
@@ -976,8 +980,11 @@ function renderStats(){
    rows.map(r=>`<tr><td>${esc(r.name)}${r.pct&&r.pct<100?` <small style="color:var(--mut)">${r.pct} %</small>`:''}</td><td class="g">${r.g}<span class="bar" style="width:${r.g/mx*40}px"></span></td><td>${r.gwe}</td><td>${r.ast}</td><td>${r.trav}</td><td>${r.abs}</td><td>${r.h}</td><td style="color:${Math.abs(r.gap)>=2?(r.gap>0?'var(--red)':'#b7791f'):'var(--ok)'};font-weight:700">${r.gap>0?'+':''}${r.gap} j</td></tr>`).join('')+'</tbody>';
 }
 
+function pruneNotes(k,d){const o=((S.notes||{})[k]||{})[d];if(!o)return;const have=ids(get(k,d));for(const id of Object.keys(o))if(!have.includes(id))delete o[id];if(!Object.keys(o).length){delete S.notes[k][d];if(!Object.keys(S.notes[k]).length)delete S.notes[k]}}
+function setNote(k,d,id,n){S.notes=S.notes||{};const o=((S.notes[k]=S.notes[k]||{})[d]=S.notes[k][d]||{});if(n&&(n.n||n.t))o[id]=n;else delete o[id];pruneNotes(k,d)}
 function setCell(k,d,pid){
-  S.ex=false;
+  S.ex=false;try{return setCell0(k,d,pid)}finally{pruneNotes(k,d)}}
+function setCell0(k,d,pid){
   if(!pid){if(S.plan[k]){delete S.plan[k][d];if(!Object.keys(S.plan[k]).length)delete S.plan[k]}return}
   const v=combine(get(k,d),pid);
   if(!v){if(S.plan[k]){delete S.plan[k][d];if(!Object.keys(S.plan[k]).length)delete S.plan[k]}return}
@@ -995,6 +1002,7 @@ $('board').addEventListener('click',e=>{
   openCell(k,d);
 });
 function cellOpts(){
+  setTimeout(renderNote);
   const {k,d}=openC,cur_=get(k,d),btn=p=>{const taken=S.docs.filter(x=>x.id!==d&&ids(get(k,x.id)).includes(p.id)).length,need=needOf(p,k);
     return `<button class="opt" data-p="${esc(p.id)}" aria-pressed="${ids(cur_).includes(p.id)}" style="${ids(cur_).includes(p.id)?`background:${esc(col(p))};color:${fg(col(p))}`:tint(esc(col(p)))}"><span><b>${esc(p.code)}</b>${need?` <small>(${taken}/${need})</small>`:''}<small style="display:block;font-weight:400;font-size:12px;line-height:1.2">${esc(p.label)}</small></span></button>`};
   const mine=S.posts.filter(p=>!p.auto),auto=S.posts.filter(p=>p.auto),lock=ids(cur_).map(P).filter(p=>p&&p.auto);
@@ -1006,6 +1014,13 @@ function openCell(k,d){
   cellOpts();$('dCell').showModal();
 }
 $('dOpts').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;setCell(openC.k,openC.d,b.dataset.p);save();cellOpts();render()});
+const t2h=v=>v?String(+v.slice(0,2))+':'+v.slice(3,5):'',h2t=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?pad(+m[1])+':'+m[2]:''};
+function renderNote(){const {k,d}=openC,ps=ids(get(k,d)).map(P).filter(noteable);
+  $('dNote').innerHTML=ps.map(p=>{const n=noteOf(k,d,p.id)||{},[a,b]=String(n.t||'').split('–');
+    return `<div class="nf" data-np="${esc(p.id)}"><p class="grp">${esc(p.label)} : nom et horaires</p><input class="in" data-nf="n" maxlength="40" placeholder="Nom (ex. CME, staff, RMM)" value="${esc(n.n||'')}"><div class="nt2"><label>De<input class="in" type="time" data-nf="a" value="${esc(h2t(a))}"></label><label>à<input class="in" type="time" data-nf="b" value="${esc(h2t(b))}"></label></div></div>`}).join('')+(ps.length&&REMOTE&&!HASNOTE?'<p class="note" style="color:var(--red)">Le nom et les horaires ne seront enregistrés qu\'après la mise à jour de la base (fichier SQL à exécuter).</p>':'');
+}
+$('dNote').addEventListener('change',e=>{const w=e.target.closest('[data-np]');if(!w)return;const {k,d}=openC,g=f=>w.querySelector(`[data-nf=${f}]`).value;
+  const n=g('n').trim().slice(0,40),a=t2h(g('a')),b=t2h(g('b')),t=a&&b?a+'–'+b:a?a:'';setNote(k,d,w.dataset.np,{...(n?{n}:{}),...(t?{t}:{})});save();render()});
 $('dClear').onclick=()=>{const {k,d}=openC;if(canAdmin)setCell(k,d,null);else{const v=autoOnly(get(k,d));if(v)(S.plan[k]=S.plan[k]||{})[d]=v;else setCell(k,d,null)}save();$('dCell').close();render()};
 $('dClose').onclick=()=>$('dCell').close();
 for(const dl of document.querySelectorAll('dialog'))dl.addEventListener('click',e=>{if(e.target===dl)dl.close()});
@@ -1163,7 +1178,7 @@ $('ics').onclick=()=>{
   if(!U.me||!DOC(U.me)){textDialog('Export agenda','Choisissez d\'abord « Ma ligne » dans Mes préférences.','', 'x.ics','text/calendar',false);return}
   const d=D(cur),y=d.getFullYear(),m=d.getMonth(),pre=y+'-'+pad(m+1)+'-',st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
   const ie=s=>String(s).replace(/[\\;,]/g,c=>'\\'+c);
-  const ev=Object.keys(S.plan).filter(k=>k.startsWith(pre)&&get(k,U.me)).sort().map(k=>{const ps=PS(k,U.me),p=ps[0];return p?['BEGIN:VEVENT','UID:'+k+'-'+ps.map(x=>x.id).join('-')+'@planning-service','DTSTAMP:'+st,'DTSTART;VALUE=DATE:'+k.replace(/-/g,''),'DTEND;VALUE=DATE:'+addD(k,1).replace(/-/g,''),'SUMMARY:'+ie(ps.map(x=>x.label+(x.cat==='garde'&&!isWE(k)?' (nuit)':'')).join(' puis ')),'TRANSP:'+(ps.some(x=>x.cat==='travail'||x.cat==='garde')?'OPAQUE':'TRANSPARENT'),'END:VEVENT'].join('\r\n'):''}).filter(Boolean);
+  const ev=Object.keys(S.plan).filter(k=>k.startsWith(pre)&&get(k,U.me)).sort().map(k=>{const ps=PS(k,U.me),p=ps[0];return p?['BEGIN:VEVENT','UID:'+k+'-'+ps.map(x=>x.id).join('-')+'@planning-service','DTSTAMP:'+st,'DTSTART;VALUE=DATE:'+k.replace(/-/g,''),'DTEND;VALUE=DATE:'+addD(k,1).replace(/-/g,''),'SUMMARY:'+ie(ps.map(x=>lbl(x,k,d)+(noteable(x)&&noteOf(k,d,x.id)?.t?' '+noteOf(k,d,x.id).t:'')+(x.cat==='garde'&&!isWE(k)?' (nuit)':'')).join(' puis ')),'TRANSP:'+(ps.some(x=>x.cat==='travail'||x.cat==='garde')?'OPAQUE':'TRANSPARENT'),'END:VEVENT'].join('\r\n'):''}).filter(Boolean);
   textDialog('Mon agenda – '+MO[m]+' '+y,ev.length+' journée(s) pour '+DOC(U.me).name+'. Ouvrez le fichier .ics pour l\'ajouter à votre agenda.',['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Planning service//FR',...ev,'END:VCALENDAR'].join('\r\n'),'planning-'+y+'-'+pad(m+1)+'.ics','text/calendar',false)};
 
 let tab='Me',meM=TK.slice(0,7),meW=monOf(TK),meSel=TK;
@@ -1171,7 +1186,10 @@ function showTab(t){tab=t;for(const x of ['Me','Team','Set'])$('tab'+x).hidden=x
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)showTab(b.dataset.t)});
 const ICP={travail:'<path d="M4 8h16v12H4z"/><path d="M9 8V5h6v3"/>',bloc:'<path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M12 9v6M9 12h6"/>',sspi:'<path d="M22 12h-4l-3 8-6-16-3 8H2"/>',cs:'<path d="M5 3v6a5 5 0 0 0 10 0V3"/><path d="M10 14v2a5 5 0 0 0 10 0v-3"/><circle cx="20" cy="11" r="2"/>',divld:'<path d="m18 2 4 4M17 7l3-3M19 9 8.7 19.3a1 1 0 0 1-1.4 0l-2.6-2.6a1 1 0 0 1 0-1.4L15 5M9 11l4 4M5 19l-3 3"/>',tnc:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',garde:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',repos:'<path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8M2 17h20M6 10V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>',off:'<path d="M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v3M10 2v3M14 2v3"/>',absence:'<path d="M13 8c0-2.8-2.2-5-5-5S3 5.2 3 8M13 8c0-2.8 2.2-5 5-5s5 2.2 5 5M13 8v14M9 22h8"/>',for:'<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',indispo:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',autre:'<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a4 4 0 0 0-3-3.9"/>',astreinte:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',free:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'};
 const icoOf=p=>{const id=p?p.id:'free';const k=/^b\d/.test(id)||(p&&BLOC()&&p.id===BLOC().id)?'bloc':ICP[id]&&!['travail','garde','repos','absence','indispo','autre','astreinte','bloc'].includes(id)?id:p?(ICP[p.cat]?p.cat:'travail'):'free';return `<svg class="ico" viewBox="0 0 24 24">${ICP[k]}</svg>`};
-const tOf=(p,k)=>p.cat==='garde'?(isWE(k)?'24 h'+(p.t?' · '+p.t:''):'nuit'+(p.tn?' '+p.tn:'')):(p.t||'');
+const noteable=p=>!!p&&(p.id==='reu'||p.cat==='autre');
+const noteOf=(k,d,id)=>((S.notes||{})[k]||{})[d]?.[id]||null;
+const lbl=(p,k,d)=>{const n=d&&noteOf(k,d,p.id);return n&&n.n?p.label+' · '+n.n:p.label};
+const tOf=(p,k,d)=>d&&noteOf(k,d,p.id)?.t?noteOf(k,d,p.id).t:p.cat==='garde'?(isWE(k)?'24 h'+(p.t?' · '+p.t:''):'nuit'+(p.tn?' '+p.tn:'')):(p.t||'');
 const grad=c=>{const lt=fg(c)!=='#ffffff';return `background:linear-gradient(135deg,${c},color-mix(in srgb,${c} 78%,${lt?'#ffffff':'#000000'}));color:${lt?'#122630':'#ffffff'}`};
 const cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
 const MOS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
@@ -1183,9 +1201,9 @@ function dayCard(k,d){
   const tag=td?'<span class="tag">AUJOURD\'HUI</span>':'',wr=w.length?`<div class="wr">${esc(w.join(' ; '))}</div>`:'';
   const main=day[0]||g[0]||x[0];
   if(!main)return `<button class="dcard free${isWE(k)?' we':''}${td?' today':''}" id="dc-${k}" data-k="${k}">${tag}<div class="h"><div class="ic">${icoOf(null)}</div><div><div class="tt">Libre</div><div class="ss">${lab}${canEdit?' · touchez pour saisir':''}</div></div></div>${wr}</button>`;
-  const c=col(main),lt=fg(c)!=='#ffffff',rest=main.cat==='garde'?[]:g,tm=tOf(main,k);
-  const title=(main.cat==='garde'||main.cat==='autre'?[main]:day).map(p=>esc(p.label)).join(' + ');
-  return `<button class="dcard${lt?' lt':''}${td?' today':''}" id="dc-${k}" data-k="${k}" style="${grad(c)}">${tag}<div class="h"><div class="ic">${icoOf(main)}</div><div><div class="tt">${title}</div><div class="ss">${lab}${tm?' · '+esc(tm):''}</div></div>${hh?`<span class="hh">${hh} h</span>`:''}</div>${rest.map(p=>`<div class="nn">${icoOf(p)}puis ${esc(p.label)} · ${esc(tOf(p,k))}</div>`).join('')}${(()=>{const ch=[...day.flatMap(p=>roomsOf(p,k)),...(main.cat==='autre'?x.slice(1):x).map(p=>p.label)];return ch.length?`<div class="xs">${ch.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''})()}${wr}</button>`;
+  const c=col(main),lt=fg(c)!=='#ffffff',rest=main.cat==='garde'?[]:g,tm=tOf(main,k,d);
+  const title=(main.cat==='garde'||main.cat==='autre'?[main]:day).map(p=>esc(lbl(p,k,d))).join(' + ');
+  return `<button class="dcard${lt?' lt':''}${td?' today':''}" id="dc-${k}" data-k="${k}" style="${grad(c)}">${tag}<div class="h"><div class="ic">${icoOf(main)}</div><div><div class="tt">${title}</div><div class="ss">${lab}${tm?' · '+esc(tm):''}</div></div>${hh?`<span class="hh">${hh} h</span>`:''}</div>${rest.map(p=>`<div class="nn">${icoOf(p)}puis ${esc(p.label)} · ${esc(tOf(p,k))}</div>`).join('')}${(()=>{const ch=[...day.flatMap(p=>roomsOf(p,k)),...(main.cat==='autre'?x.slice(1):x).map(p=>lbl(p,k,d)+(noteOf(k,d,p.id)?.t?' '+noteOf(k,d,p.id).t:''))];return ch.length?`<div class="xs">${ch.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''})()}${wr}</button>`;
 }
 function calB(days){
   const v=[...new Set(days.map(vacOf).filter(Boolean))],f=days.filter(isFer);
@@ -1193,17 +1211,17 @@ function calB(days){
 }
 const tn=c=>`--c:${esc(c)};background:${esc(c)};color:${fg(c)}`;
 const pT=v=>{const m=String(v||'').match(/(\d{1,2})[:h](\d{2})?\s*[–-]\s*(\d{1,2})[:h]?(\d{2})?/);if(!m)return null;const a=+m[1]+(+m[2]||0)/60;let b=+m[3]+(+m[4]||0)/60;if(b<=a)b+=24;return [a,b]};
-const spanOf=(p,k)=>{if(p.cat==='garde'){return pT(isWE(k)?p.t:p.tn)||(isWE(k)?[8.5,32.5]:[18.5,32.5])}return pT(p.t)};
+const spanOf=(p,k,d)=>{const nt=d&&noteOf(k,d,p.id)?.t;if(nt)return pT(nt);if(p.cat==='garde'){return pT(isWE(k)?p.t:p.tn)||(isWE(k)?[8.5,32.5]:[18.5,32.5])}return pT(p.t)};
 const carry=(k,d)=>{const y=addD(k,-1);return PS(y,d).map(p=>({p,s:spanOf(p,y)})).filter(o=>o.s&&o.s[1]>24).map(o=>({p:o.p,b:o.s[1]-24}))};
 const fH=x=>Math.floor(x)+':'+pad(Math.round(x%1*60));
 function sumS(days,d){const w=weekH(days[0],d),hb=hoursBy(days,d),den=Math.max(w.h,w.target,1),ok=w.h>=w.target;
   return `<div class="sums"><span class="bh">${w.h} h</span><small>/ ${w.target} h</small><span class="hb">${hb.list.map(o=>`<u style="width:${o.h/den*100}%;background:${esc(col(o.p))}"></u>`).join('')}</span><span class="okb${ok?'':' lo'}">${ok?'✓ atteint':'encore '+(w.target-w.h)+' h'}</span></div>`}
 function wA(days,d){return `<div class="vwa">${days.map(k=>{const dd=D(k),ps=PS(k,d),w=warnsFor(k,d);
-  return `<button class="r${k===TK?' td':''}${isWE(k)?' we':''}" data-k="${k}"><span class="dy"><small>${DW[dd.getDay()]}</small><b>${dd.getDate()}</b></span><span class="ps">${isFer(k)?`<i class="fch">Férié · ${esc(ferName(k))}</i>`:''}${ps.length?ps.map(p=>{const rm=roomsOf(p,k);return `<span class="p" style="${tn(col(p))}"><b>${esc(p.code)}</b><em>${esc(p.label)}${rm.length?'<small>'+esc(rm.join(' · '))+'</small>':''}</em><u>${esc(tOf(p,k))}</u></span>`}).join(''):'<span class="p free">Libre</span>'}${w.length?`<span class="wr">${esc(w.join(' ; '))}</span>`:''}</span></button>`}).join('')}</div>`}
+  return `<button class="r${k===TK?' td':''}${isWE(k)?' we':''}" data-k="${k}"><span class="dy"><small>${DW[dd.getDay()]}</small><b>${dd.getDate()}</b></span><span class="ps">${isFer(k)?`<i class="fch">Férié · ${esc(ferName(k))}</i>`:''}${ps.length?ps.map(p=>{const rm=roomsOf(p,k);return `<span class="p" style="${tn(col(p))}"><b>${esc(p.code)}</b><em>${esc(lbl(p,k,d))}${rm.length?'<small>'+esc(rm.join(' · '))+'</small>':''}</em><u>${esc(tOf(p,k,d))}</u></span>`}).join(''):'<span class="p free">Libre</span>'}${w.length?`<span class="wr">${esc(w.join(' ; '))}</span>`:''}</span></button>`}).join('')}</div>`}
 function wB(days,d){const PX=19;let h=`<div class="vwb"><div class="hd"><span></span>${days.map(k=>{const dd=D(k);return `<span class="${k===TK?'td':''}${vacOf(k)?' va':''}"><small>${DW[dd.getDay()]}</small><b>${dd.getDate()}</b>${isFer(k)?'<i class="fch">férié</i>':''}</span>`}).join('')}</div><div class="bd"><div class="ax">${[0,4,8,12,16,20].map(x=>`<span style="top:${x*PX}px">${x}h</span>`).join('')}</div>`;
   for(const k of days){let e='',st=0;const ev=(p,a,b,sub,cl)=>`<span class="ev${cl||''}" style="top:${a*PX}px;height:${Math.max(16,(b-a)*PX-2)}px;${tn(col(p))}">${esc(p.code)}${sub&&b-a>2?'<small>'+esc(sub)+'</small>':''}</span>`;
     for(const o of carry(k,d)){e+=ev(o.p,0,o.b,'');st=Math.max(st,o.b)}
-    const T=PS(k,d).map(p=>({p,s:spanOf(p,k)})),tim=T.filter(o=>o.s);let n=0;
+    const T=PS(k,d).map(p=>({p,s:spanOf(p,k,d)})),tim=T.filter(o=>o.s);let n=0;
     T.forEach((o,i)=>{if(o.s){const b=Math.min(24,o.s[1]),ov=T.slice(0,i).some(x=>x.s&&x.s[0]<b&&o.s[0]<Math.min(24,x.s[1]));e+=ev(o.p,o.s[0],b,fH(o.s[0]),ov?' ov':'')}
       else if(!tim.length){const a=Math.max(st,8);e+=ev(o.p,a,Math.max(a+4,19),'')}
       else e+=`<span class="tg" style="top:${(st||7)*PX-18-n++*18}px;${tn(col(o.p))}">${esc(o.p.code)}</span>`});
@@ -1212,12 +1230,12 @@ function wB(days,d){const PX=19;let h=`<div class="vwb"><div class="hd"><span></
   return h+'</div></div>'}
 function wC(days,d){const w=weekH(days[0],d),ng=days.filter(k=>has(k,d,'garde')).length;
   return `<div class="vwc">${days.map(k=>{const dd=D(k),ps=PS(k,d),p=ps.find(x=>x.cat!=='autre')||ps[0],q=ps.filter(x=>x!==p),c=p?col(p):'';
-  return `<button class="t${k===TK?' td':''}${p?'':' free'}" data-k="${k}" style="${p?tn(c):''}"><span class="d"><span>${cap(DW[dd.getDay()])}. ${dd.getDate()}</span>${isFer(k)?`<i class="fch">${esc(ferName(k))}</i>`:''}</span><span class="c">${p?esc(p.code):'Libre'}${q.length?` <small>+ ${q.map(x=>esc(x.code)).join(' + ')}</small>`:''}</span>${p?`<span class="l">${esc([p,...q].map(x=>x.label).join(' · '))}</span>`:''}${p&&tOf(p,k)?`<span class="x">${esc([p,...q].map(x=>tOf(x,k)).filter(Boolean).join(' · '))}</span>`:''}</button>`}).join('')}<div class="t s"><span class="d">Semaine ${isoW(days[0])}</span><span class="c">${w.h} h</span><span class="l">${ng} garde${ng>1?'s':''} · repère ${w.target} h${w.h>=w.target?' ✓':''}</span></div></div>`}
+  return `<button class="t${k===TK?' td':''}${p?'':' free'}" data-k="${k}" style="${p?tn(c):''}"><span class="d"><span>${cap(DW[dd.getDay()])}. ${dd.getDate()}</span>${isFer(k)?`<i class="fch">${esc(ferName(k))}</i>`:''}</span><span class="c">${p?esc(p.code):'Libre'}${q.length?` <small>+ ${q.map(x=>esc(x.code)).join(' + ')}</small>`:''}</span>${p?`<span class="l">${esc([p,...q].map(x=>lbl(x,k,d)).join(' · '))}</span>`:''}${p&&[p,...q].some(x=>tOf(x,k,d))?`<span class="x">${esc([p,...q].map(x=>tOf(x,k,d)).filter(Boolean).join(' · '))}</span>`:''}</button>`}).join('')}<div class="t s"><span class="d">Semaine ${isoW(days[0])}</span><span class="c">${w.h} h</span><span class="l">${ng} garde${ng>1?'s':''} · repère ${w.target} h${w.h>=w.target?' ✓':''}</span></div></div>`}
 function wD(days,d){const L=x=>x/24*100,used=new Map();let h=`<div class="vwd"><div class="ax"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>`;
   for(const k of days){const dd=D(k);let e='',st=0;const ev=(p,a,b,t,cl)=>{used.set(p.id,p);return `<span class="ev${cl||''}" style="left:${L(a)}%;width:${L(b-a)}%;${tn(col(p))}">${t}</span>`};
     for(const o of carry(k,d)){e+=ev(o.p,0,o.b,esc(o.p.code));st=Math.max(st,o.b)}
-    const T=PS(k,d).map(p=>({p,s:spanOf(p,k)})),tim=T.filter(o=>o.s);
-    T.forEach(o=>{if(o.s){const b=Math.min(24,o.s[1]),inr=tim.some(x=>x!==o&&x.s[0]<=o.s[0]&&Math.min(24,x.s[1])>=b&&x.s[1]-x.s[0]>o.s[1]-o.s[0]);e+=inr?ev(o.p,o.s[0],b,'',' in'):ev(o.p,o.s[0],b,esc(o.p.code)+(o.p.cat!=='garde'&&b-o.s[0]>=7?' '+esc(o.p.t):''))}
+    const T=PS(k,d).map(p=>({p,s:spanOf(p,k,d)})),tim=T.filter(o=>o.s);
+    T.forEach(o=>{if(o.s){const b=Math.min(24,o.s[1]),inr=tim.some(x=>x!==o&&x.s[0]<=o.s[0]&&Math.min(24,x.s[1])>=b&&x.s[1]-x.s[0]>o.s[1]-o.s[0]);e+=inr?ev(o.p,o.s[0],b,'',' in'):ev(o.p,o.s[0],b,esc(o.p.code)+(o.p.cat!=='garde'&&b-o.s[0]>=7?' '+esc(tOf(o.p,k,d)):''))}
       else if(!tim.length)e+=ev(o.p,st,24,esc(o.p.label));else{used.set(o.p.id,o.p);e+=`<span class="tg" style="${tn(col(o.p))}">${esc(o.p.code)}</span>`}});
     h+=`<button class="r${k===TK?' td':''}" data-k="${k}"><span class="dy">${DW[dd.getDay()]}<b>${dd.getDate()}</b>${isFer(k)?'<i class="fch">férié</i>':''}</span><span class="tl${vacOf(k)?' va':''}">${e}</span></button>`}
   return h+(used.size?`<div class="lg">${[...used.values()].map(p=>`<span><i style="background:${esc(col(p))}"></i>${esc(p.label)}</span>`).join('')}</div>`:'')+'</div>'}
@@ -1250,7 +1268,7 @@ function monthView(d){
   const bars=`<div class="wbars"><span class="ln" style="bottom:${(+S.minH||42)*pctOf(d)/mx*70}px"></span>${wk.map(o=>`<i style="height:${Math.max(4,o.w.h/mx*70)}px;background:${!o.w.h?'var(--soft)':o.w.h>=o.w.target?'var(--acc)':'#e39b2d'}"></i>`).join('')}</div><div class="wbl">${wk.map(o=>`<span>S${isoW(o.mon)}</span>`).join('')}</div>`;
   const tiles=`<div class="two"><div class="tile"><h4>Ce mois-ci</h4><div class="dn">${donut}<div><div class="v">${tot} h</div><small>${ng} garde${ng>1?'s':''}${na?'<br>'+na+' j d\'absence':''}</small></div></div></div><div class="tile"><h4>Par semaine</h4>${bars}</div></div>`;
   const ps=PS(meSel,d),dd=D(meSel);
-  const det=`<div class="det"><div class="dh">${dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}${meSel===TK?' · aujourd\'hui':''}${isFer(meSel)?` <span class="fch">${esc(ferName(meSel))}</span>`:''}${vacOf(meSel)?` <span class="vch">${esc(vacShort(vacOf(meSel)))}</span>`:''}</div>${ps.length?ps.map(p=>`<div class="r"><span class="i2" style="${grad(col(p))}">${icoOf(p)}</span><span><b>${esc(p.label)}</b><small>${esc([tOf(p,meSel),...roomsOf(p,meSel)].filter(Boolean).join(' · '))||'&nbsp;'}</small></span><span>${hrs(p,meSel)?hrs(p,meSel)+' h':''}</span></div>`).join(''):'<div class="r"><span class="i2" style="background:var(--soft);color:var(--mut)">'+icoOf(null)+'</span><span><b>Libre</b></span><span></span></div>'}${warnsFor(meSel,d).length?`<p class="note" style="color:var(--red);margin:6px 0 0">${esc(warnsFor(meSel,d).join(' ; '))}</p>`:''}${canEdit?`<button class="ed" data-k="${meSel}">Modifier ce jour</button>`:''}</div>`;
+  const det=`<div class="det"><div class="dh">${dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}${meSel===TK?' · aujourd\'hui':''}${isFer(meSel)?` <span class="fch">${esc(ferName(meSel))}</span>`:''}${vacOf(meSel)?` <span class="vch">${esc(vacShort(vacOf(meSel)))}</span>`:''}</div>${ps.length?ps.map(p=>`<div class="r"><span class="i2" style="${grad(col(p))}">${icoOf(p)}</span><span><b>${esc(lbl(p,meSel,d))}</b><small>${esc([tOf(p,meSel,d),...roomsOf(p,meSel)].filter(Boolean).join(' · '))||'&nbsp;'}</small></span><span>${hrs(p,meSel)?hrs(p,meSel)+' h':''}</span></div>`).join(''):'<div class="r"><span class="i2" style="background:var(--soft);color:var(--mut)">'+icoOf(null)+'</span><span><b>Libre</b></span><span></span></div>'}${warnsFor(meSel,d).length?`<p class="note" style="color:var(--red);margin:6px 0 0">${esc(warnsFor(meSel,d).join(' ; '))}</p>`:''}${canEdit?`<button class="ed" data-k="${meSel}">Modifier ce jour</button>`:''}</div>`;
   return calB(mdays)+`<div class="calm">${g}</div>`+det+tiles;
 }
 function renderMe(){
@@ -1304,14 +1322,16 @@ function startApp(){
 }
 function showAuth(msg,pw){document.body.classList.add('authing');$('auth').hidden=false;$('fLogin').hidden=!!pw;$('fPw').hidden=!pw;$('aMsg').textContent=msg||''}
 const offline=msg=>{const c=ls(KEY+'-cache');if(c&&c.S){S=norm(c.S);U=Object.assign({colors:{}},c.U);canEdit=false;canAdmin=false;startApp();sync(msg,true)}else showAuth('Connexion impossible : vérifiez le réseau.')};
+let HASNOTE=true,baseN={};
+const nj=(N,k,d)=>{const o=((N||{})[k]||{})[d];return o&&Object.keys(o).length?JSON.stringify(o):null};
 async function pushRemote(){
   const ups=[],dels={};
-  for(const k of new Set([...Object.keys(S.plan),...Object.keys(base)])){const a=S.plan[k]||{},b=base[k]||{};
-    for(const d of new Set([...Object.keys(a),...Object.keys(b)])){if(a[d]===b[d])continue;if(a[d])ups.push({day:k,doc_id:d,post_id:a[d]});else(dels[k]=dels[k]||[]).push(d)}}
+  for(const k of new Set([...Object.keys(S.plan),...Object.keys(base),...Object.keys(S.notes||{})])){const a=S.plan[k]||{},b=base[k]||{};
+    for(const d of new Set([...Object.keys(a),...Object.keys(b)])){const na=nj(S.notes,k,d);if(a[d]===b[d]&&(!HASNOTE||na===nj(baseN,k,d)))continue;if(a[d])ups.push(HASNOTE?{day:k,doc_id:d,post_id:a[d],note:na}:{day:k,doc_id:d,post_id:a[d]});else(dels[k]=dels[k]||[]).push(d)}}
   let err=null;
   if(ups.length){const {error}=await sb.from('assignments').upsert(ups);if(error)err=error}
   for(const [k,ds] of Object.entries(dels)){const {error}=await sb.from('assignments').delete().eq('day',k).in('doc_id',ds);if(error)err=error}
-  if(!err)base=clone(S.plan);
+  if(!err){base=clone(S.plan);baseN=clone(S.notes||{})}
   if(!err&&canAdmin&&cfgOf(S)!==baseCfg){
     const at=new Date().toISOString(),data={docs:S.docs,posts:S.posts,rooms:S.rooms,closures:S.closures,zone:S.zone,minH:S.minH,dayH:S.dayH,autoRS:S.autoRS};
     const r=await sb.from('service_state').update({data,updated_at:at,updated_by:prof.id}).eq('id',1).eq('updated_at',lastAt).select('updated_at');
@@ -1324,12 +1344,13 @@ async function pushRemote(){
 async function pull(){
   const st=await sb.from('service_state').select('data,updated_at').eq('id',1).single();
   if(st.error)throw st.error;
-  const plan={},min=(now.getFullYear()-1)+'-01-01';
+  const plan={},notes={},min=(now.getFullYear()-1)+'-01-01';
   for(let from=0;;from+=1000){
-    const {data,error}=await sb.from('assignments').select('day,doc_id,post_id').gte('day',min).order('day').order('doc_id').range(from,from+999);
-    if(error)throw error;for(const r of data)(plan[r.day]=plan[r.day]||{})[r.doc_id]=r.post_id;if(data.length<1000)break;
+    let {data,error}=await sb.from('assignments').select(HASNOTE?'day,doc_id,post_id,note':'day,doc_id,post_id').gte('day',min).order('day').order('doc_id').range(from,from+999);
+    if(error&&HASNOTE&&/note/.test(error.message||'')){HASNOTE=false;from-=1000;continue}
+    if(error)throw error;for(const r of data){(plan[r.day]=plan[r.day]||{})[r.doc_id]=r.post_id;if(r.note){try{const o=JSON.parse(r.note);if(o&&typeof o==='object')(notes[r.day]=notes[r.day]||{})[r.doc_id]=o}catch(e){}}}if(data.length<1000)break;
   }
-  S=norm(Object.assign({},st.data.data,{plan}));lastAt=st.data.updated_at;
+  S=norm(Object.assign({},st.data.data,{plan,notes}));baseN=clone(notes);lastAt=st.data.updated_at;
   base=clone(plan);baseCfg=cfgOf(S);ls(KEY+'-cache',{S,U});renderEditors();render();
 }
 async function loadAccts(){
@@ -1357,11 +1378,12 @@ async function afterLogin(){
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
      const r=pl.eventType==='DELETE'?pl.old:pl.new;if(!r||!r.day)return;const k=r.day,d=r.doc_id;
      for(const o of [S.plan,base]){if(pl.eventType==='DELETE'){if(o[k]){delete o[k][d];if(!Object.keys(o[k]).length)delete o[k]}}else(o[k]=o[k]||{})[d]=r.post_id}
+     if(HASNOTE&&pl.eventType!=='DELETE'&&'note' in r){let nt=null;try{nt=r.note?JSON.parse(r.note):null}catch(e){}for(const N of [S.notes=S.notes||{},baseN]){if(nt)(N[k]=N[k]||{})[d]=nt;else if(N[k]){delete N[k][d];if(!Object.keys(N[k]).length)delete N[k]}}}
      ls(KEY+'-cache',{S,U});render();if(r.updated_by&&r.updated_by!==prof.id)sync('Planning modifié par un collègue');
    })
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'service_state'},pl=>{
      if(pl.new.updated_by===prof.id&&Date.parse(pl.new.updated_at)===Date.parse(lastAt))return;
-     const plan=S.plan;S=norm(Object.assign({},pl.new.data,{plan}));lastAt=pl.new.updated_at;baseCfg=cfgOf(S);ls(KEY+'-cache',{S,U});renderEditors();render();sync('Réglages mis à jour par l\'administrateur');
+     const plan=S.plan;S=norm(Object.assign({},pl.new.data,{plan,notes:S.notes}));lastAt=pl.new.updated_at;baseCfg=cfgOf(S);ls(KEY+'-cache',{S,U});renderEditors();render();sync('Réglages mis à jour par l\'administrateur');
    }).subscribe();
 }
 async function boot(){
