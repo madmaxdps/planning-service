@@ -567,16 +567,12 @@ table.g2{border-collapse:separate;border-spacing:0}
 .vwd .tg{position:absolute;right:3px;top:-6px;font-size:9px;font-weight:800;border-radius:5px;padding:0 4px;outline:1.5px solid var(--card)}
 .vwd .lg{display:flex;flex-wrap:wrap;gap:6px 12px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--mut)}
 .vwd .lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
-/* Bandeau sobre (27/11) : plus de dégradé en haut */
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) body{background:var(--bg)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mehead h1,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header h1,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabSet h1{color:var(--ink)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header h1 small,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #hint,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .sync{color:var(--mut)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mehead .ib,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header .ib,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam header .tb{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .who{background:color-mix(in srgb,var(--acc) 10%,var(--card));color:var(--acc)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg{background:color-mix(in srgb,var(--ink) 7%,var(--bg))}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg button,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg button{color:var(--mut)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg button[aria-pressed=true],:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgb(15 23 42/.12)}
-:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .teamlink{background:var(--card);color:var(--acc)}
+/* Bandeau uni (27/11) : couleur pleine, sans dégradé */
+:root[data-skin=vif]{--band:#4338ca}:root[data-skin=lagon]{--band:#0277b6}:root[data-skin=soleil]{--band:#e11d48}:root[data-skin=jade]{--band:#047857}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) body{background:linear-gradient(var(--band),var(--band)) top/100% 250px no-repeat,var(--bg)}
+#mTitle{font-size:22px!important;line-height:1.2}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .mseg button[aria-pressed=true],:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #tabTeam .seg button[aria-pressed=true]{color:var(--band)}
+:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .teamlink{color:var(--band)}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dchip.on{background:var(--acc);color:#fff}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .fab,:root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .dcard .tag{background:var(--acc);color:#fff}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) .fab{box-shadow:0 8px 20px color-mix(in srgb,var(--acc) 35%,transparent)}
