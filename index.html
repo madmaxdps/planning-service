@@ -340,6 +340,11 @@ table.g2{border-collapse:separate;border-spacing:0}
 .rrow{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center;margin-bottom:8px}
 .rrow.off input[type=text]{opacity:.55}
 .sw{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;min-width:92px;cursor:pointer}.sw input{width:22px;height:22px}
+.pdays{display:flex;gap:4px;align-items:center}.pdays label{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mut);cursor:pointer}.pdays input{width:20px;height:20px;margin:0}
+.pext{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pext label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}.pext input{height:36px;border-radius:10px;border:1px solid var(--line);background:var(--soft);padding:0 8px}
+.xch{border:0;border-radius:99px;background:color-mix(in srgb,var(--acc) 14%,var(--card));color:var(--acc);font-weight:600;font-size:12px;padding:5px 10px;cursor:pointer}
+@media(max-width:700px){.prow>.pdays,.prow>.pext{flex:1 1 100%}}
+.prow{display:flex!important;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}.prow>input[type=color]{flex:0 0 44px}.prow>[data-f=code]{flex:0 0 64px}.prow>[data-f=label]{flex:1 1 140px}.prow>select{flex:1 1 130px}.prow .nl{flex:0 0 64px}.prow .nl span{display:block;font-size:11px;color:var(--mut)}.prow.ph{display:none!important}.prow>.nt{flex:1 1 220px}.prow>.pdays,.prow>.pext{flex:0 1 auto}
 </style>
 </head>
 <body>
@@ -542,7 +547,7 @@ function sample(){
     const k=addD(mon,i),dow=D(k).getDay(),we=dow===0||dow===6,day={};
     day[docs[(2*i)%N].id]='gm';day[docs[(2*i+1)%N].id]='gu';
     if(i>0){day[docs[(2*i-2)%N].id]='rs';day[docs[(2*i-1)%N].id]='rs'}
-    if(!we){const free=docs.map(d=>d.id).filter(id=>day[id]!=='rs');free.sort((a,b)=>(day[b]?1:0)-(day[a]?1:0));['b1','cs','sspi'].forEach((p,j)=>{const id=free[j];if(id)day[id]=day[id]?p+'+'+day[id]:p})}
+    if(!we){const free=docs.map(d=>d.id).filter(id=>day[id]!=='rs');free.sort((a,b)=>(day[b]?1:0)-(day[a]?1:0));['b1','cs','sspi'].filter(p=>p!=='cs'||[2,3,4].includes(dow)).forEach((p,j)=>{const id=free[j];if(id)day[id]=day[id]?p+'+'+day[id]:p})}
     plan[k]=day;
   }
   return {docs,posts:clone(DEF_POSTS),plan,autoRS:true,ex:true,minH:42,dayH:11};
@@ -554,7 +559,7 @@ const norm=x=>{x=x&&typeof x==='object'?x:{};if(!Array.isArray(x.docs))x.docs=[]
   if(!x.v5){if(!x.posts.some(p=>p.id==='reu'))x.posts.push({id:'reu',code:'RÉU',label:'Réunion',color:'#5b6f78',cat:'travail',h:0,nw:0,ne:0,auto:false});x.v5=true}
   if(!x.v4){for(const p of x.posts)if(p.id==='rs'&&p.code==='RS')p.code='RQ';x.v4=true}
   if(!x.v3){for(const p of x.posts)if(p.id==='sspi'){p.auto=false;p.nw=0}x.v3=true}
-  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'8:00–19:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
+  for(const p of x.posts)if(p.auto===undefined)p.auto=p.cat==='travail'&&(+p.nw||0)>0&&p.id!=='divld';if(!x.v12){const c=x.posts.find(p=>p.id==='cs');if(c&&!Array.isArray(c.days))c.days=[2,3,4];x.v12=true}if(!x.v10){const b=x.posts.find(p=>p.id==='b1');if(b&&b.code==='B1'){b.code='BLOC';b.label='Bloc opératoire'}const used=new Set();for(const day of Object.values(x.plan))for(const v of Object.values(day||{}))for(const t of String(v||'').split('+'))used.add(t);x.posts=x.posts.filter(p=>!((p.id==='b2'&&p.code==='B2'||p.id==='b3'&&p.code==='B3')&&!used.has(p.id)));x.v10=true}if(!Array.isArray(x.rooms)||(!x.v11&&x.rooms.map(r=>r.id).join()==='endo,oph,pneu,orth,s5'))x.rooms=clone(DEF_ROOMS);x.v11=true;if(!x.v9){const T={b1:'8:00–19:00',b2:'8:00–19:00',b3:'8:00–19:00',sspi:'8:00–19:00',divld:'8:00–19:00',tnc:'8:00–19:00',cs:'9:00–17:00',for:'9:00–17:00',gm:'8:30–8:30',gu:'8:30–8:30'};for(const p of x.posts){if(p.t==null)p.t=T[p.id]||(p.cat==='garde'?'8:30–8:30':'');if(p.cat==='garde'&&p.tn==null)p.tn='18:30–8:30'}x.v9=true}if(x.minH==null)x.minH=42;if(x.dayH==null)x.dayH=11;return x};
 const ls=(k,v)=>{try{if(v===undefined){const r=localStorage.getItem(k);return r?JSON.parse(r):null}localStorage.setItem(k,JSON.stringify(v))}catch(e){mem=false;return null}};
 let S,U,mem=true,canEdit=true,canAdmin=true,sb=null,prof=null,lastAt=null,pushT=null,prefT=null,base={},baseCfg='';
 const cfgOf=x=>JSON.stringify({docs:x.docs,posts:x.posts,rooms:x.rooms,minH:x.minH,dayH:x.dayH,autoRS:x.autoRS});
@@ -586,6 +591,8 @@ const fc={};
 function fer(y){if(fc[y])return fc[y];const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=(h+l-7*m+114)%31+1;const E=ymd(new Date(y,mo-1,da));return fc[y]=new Set([y+'-01-01',addD(E,1),y+'-05-01',y+'-05-08',addD(E,39),addD(E,50),y+'-07-14',y+'-08-15',y+'-11-01',y+'-11-11',y+'-12-25'])}
 const isFer=k=>fer(+k.slice(0,4)).has(k);
 const isWE=k=>{const w=D(k).getDay();return w===0||w===6||isFer(k)};
+const dayOk=(p,k)=>!Array.isArray(p.days)||p.days.includes(D(k).getDay())||(Array.isArray(p.extra)&&p.extra.includes(k));
+const needOf=(p,k)=>isWE(k)?(+p.ne||0):dayOk(p,k)?(+p.nw||0):0;
 const get=(k,d)=>S.plan[k]?.[d];
 const ids=v=>(v||'').split('+').filter(Boolean);
 const PS=(k,d)=>ids(get(k,d)).map(P).filter(Boolean);
@@ -615,7 +622,7 @@ function range(){
 }
 function coverage(k){
   const we=isWE(k),out=[];
-  for(const p of S.posts){const need=we?+p.ne||0:+p.nw||0;const who=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id));if(need||who.length)out.push({p,need,who})}
+  for(const p of S.posts){const need=needOf(p,k);const who=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id));if(need||who.length)out.push({p,need,who})}
   return out;
 }
 const pctOf=id=>{const p=+(DOC(id)?.pct);return p>0&&p<=100?p/100:1};
@@ -714,7 +721,7 @@ $('board').addEventListener('click',e=>{
   openCell(k,d);
 });
 function cellOpts(){
-  const {k,d}=openC,cur_=get(k,d),btn=p=>{const taken=S.docs.filter(x=>x.id!==d&&ids(get(k,x.id)).includes(p.id)).length,need=isWE(k)?+p.ne||0:+p.nw||0;
+  const {k,d}=openC,cur_=get(k,d),btn=p=>{const taken=S.docs.filter(x=>x.id!==d&&ids(get(k,x.id)).includes(p.id)).length,need=needOf(p,k);
     return `<button class="opt" data-p="${esc(p.id)}" aria-pressed="${ids(cur_).includes(p.id)}" style="${ids(cur_).includes(p.id)?`background:${esc(col(p))};color:${fg(col(p))}`:tint(esc(col(p)))}"><span><b>${esc(p.code)}</b>${need?` <small>(${taken}/${need})</small>`:''}<small style="display:block;font-weight:400;font-size:12px;line-height:1.2">${esc(p.label)}</small></span></button>`};
   const mine=S.posts.filter(p=>!p.auto),auto=S.posts.filter(p=>p.auto),lock=ids(cur_).map(P).filter(p=>p&&p.auto);
   $('dOpts').innerHTML=`<p class="grp">Mes saisies</p><div class="opts">${mine.map(btn).join('')}</div>`+(canAdmin&&auto.length?`<p class="grp">Bloc et consultation (administrateur)</p><div class="opts">${auto.map(btn).join('')}</div>`:lock.length?`<p class="grp">Posé par l'administrateur : ${lock.map(p=>esc(p.label)).join(', ')}</p>`:'');
@@ -766,6 +773,7 @@ function renderEditors(){
    <input type="text" data-f="label" value="${esc(p.label)}" maxlength="40" aria-label="Libellé">
    <select data-f="cat" aria-label="Catégorie">${Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${p.cat===v?'selected':''}>${l}</option>`).join('')}</select>
    <label class="nl"><span>Heures</span><input type="number" data-f="h" value="${esc(p.h)}" min="0" max="24" step="0.5" aria-label="Heures" title="Heures"></label><span class="nt"><label class="nl" title="Horaires affichés dans Mon planning"><span>${p.cat==='garde'?'Horaires WE':'Horaires'}</span><input type="text" data-f="t" value="${esc(p.t||'')}" maxlength="20" placeholder="8:00–19:00" aria-label="Horaires"></label>${p.cat==='garde'?`<label class="nl" title="Garde de nuit en semaine"><span>Nuit sem.</span><input type="text" data-f="tn" value="${esc(p.tn||'')}" maxlength="20" placeholder="18:30–8:30" aria-label="Horaires de nuit en semaine"></label><label class="nl" title="Heures comptées pour une garde de nuit en semaine"><span>H nuit sem.</span><input type="number" data-f="hn" value="${esc(p.hn==null?14:p.hn)}" min="0" max="24" step="0.5" aria-label="Heures de garde de nuit en semaine"></label>`:''}</span>
+   ${p.cat==='travail'?`<span class="pdays" title="Jours d'ouverture (lun.–ven.)">${[1,2,3,4,5].map(n=>`<label><input type="checkbox" data-f="day" data-d="${n}" ${!Array.isArray(p.days)||p.days.includes(n)?'checked':''} aria-label="${['','lundi','mardi','mercredi','jeudi','vendredi'][n]}"><b>${'LMMJV'[n-1]}</b></label>`).join('')}</span>${Array.isArray(p.days)?`<span class="pext"><label title="Ouvrir ce poste un jour supplémentaire"><span>+ jour</span><input type="date" data-f="xadd" aria-label="Ouvrir un jour supplémentaire"></label>${(p.extra||[]).filter(k=>k>=addD(TK,-31)).sort().map(k=>`<button class="xch" data-xdel="${i}|${k}" aria-label="Retirer le ${k}">${D(k).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} ✕</button>`).join('')}</span>`:''}`:''}
    <label class="nl"><span>Bes. sem.</span><input type="number" data-f="nw" value="${esc(p.nw)}" min="0" max="20" aria-label="Besoin semaine" title="Besoin lun-ven"></label>
    <label class="nl"><span>Bes. WE</span><input type="number" data-f="ne" value="${esc(p.ne)}" min="0" max="20" aria-label="Besoin week-end" title="Besoin WE/fériés"></label>
    <label class="nl" title="Inclus dans la répartition automatique"><span>Auto</span><input type="checkbox" data-f="auto" ${p.auto?'checked':''} aria-label="Répartition automatique" style="width:22px;height:22px"></label>
@@ -788,7 +796,7 @@ $('autoFill').onclick=()=>{
   for(const [k,day] of Object.entries(S.plan)){if(!months.has(k.slice(0,7)))continue;for(const [d,v] of Object.entries(day)){if(!cnt[d])continue;for(const pid of ids(v))cnt[d][pid]=(cnt[d][pid]||0)+1;if(worked(k,d))tot[d]++}}
   let filled=0,miss=0;
   for(const k of days){
-    const need=[];for(const p of slots){const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<+p.nw;i++)need.push(p)}
+    const need=[];for(const p of slots){if(!dayOk(p,k))continue;const have=S.docs.filter(d=>ids(get(k,d.id)).includes(p.id)).length;for(let i=have;i<+p.nw;i++)need.push(p)}
     need.sort(()=>Math.random()-.5);
     for(const p of need){
       // libres : rien ce jour-là, ou seulement une garde de nuit (on privilégie alors une journée avant la garde)
@@ -829,8 +837,10 @@ $('defMode').onchange=e=>{U.mode=e.target.value;savePrefs()};
 $('myCols').addEventListener('input',e=>{const id=e.target.dataset.c;if(!id)return;U.colors=U.colors||{};U.colors[id]=e.target.value;savePrefs();render()});
 $('resetCols').onclick=()=>{U.colors={};savePrefs();renderEditors();render()};
 $('posts').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(!r)return;const p=S.posts[+r.dataset.i],f=e.target.dataset.f;
+  if(f==='day'){const d=[1,2,3,4,5].filter(n=>r.querySelector(`[data-d="${n}"]`).checked);if(d.length===5)delete p.days;else p.days=d;save();renderEditors();render();return}
+  if(f==='xadd'){const k=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(k)){p.extra=[...new Set([...(p.extra||[]),k])].sort()}save();renderEditors();render();return}
   p[f]=f==='auto'?e.target.checked:['t','tn'].includes(f)?e.target.value.trim().slice(0,20):['h','hn','nw','ne'].includes(f)?Math.max(0,+e.target.value||0):(e.target.value.trim()||p[f]);save();render()});
-$('posts').addEventListener('click',e=>{const b=e.target.closest('[data-delp]');if(!b)return;const p=S.posts[+b.dataset.delp];
+$('posts').addEventListener('click',e=>{const x=e.target.closest('[data-xdel]');if(x){const [i,k]=x.dataset.xdel.split('|'),p=S.posts[+i];p.extra=(p.extra||[]).filter(d=>d!==k);save();renderEditors();render();return}const b=e.target.closest('[data-delp]');if(!b)return;const p=S.posts[+b.dataset.delp];
   if(!twoTap(b,'Sûr ?'))return;for(const k in S.plan)for(const d in S.plan[k])if(S.plan[k][d]===p.id)delete S.plan[k][d];S.posts.splice(+b.dataset.delp,1);if(brush===p.id)brush=null;save();renderEditors();render()});
 $('blocN').onchange=e=>{const b=BLOC();if(!b)return;b.nw=Math.max(0,Math.min(10,Math.round(+e.target.value||0)));save();renderEditors();render()};
 $('rooms').addEventListener('change',e=>{const r=e.target.closest('[data-r]');if(!r)return;const x=S.rooms[+r.dataset.r];if(e.target.dataset.rf==='on')x.on=e.target.checked;else x.name=e.target.value.trim().slice(0,40)||x.name;save();renderRooms();render()});
