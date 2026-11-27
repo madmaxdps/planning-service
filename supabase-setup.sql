@@ -199,6 +199,15 @@ create policy p_asg_delete on public.assignments for delete to authenticated usi
 drop policy if exists p_log_select on public.assignment_log;
 create policy p_log_select on public.assignment_log for select to authenticated using (public.is_member());
 
+-- 9b. Droits d'accès aux tables pour les utilisateurs connectés
+--     (les nouveaux projets Supabase ne les donnent plus automatiquement ; les règles RLS ci-dessus restent appliquées)
+grant usage on schema public to authenticated;
+grant select, update on public.profiles to authenticated;
+grant select, update on public.service_state to authenticated;
+grant select, insert, update, delete on public.assignments to authenticated;
+grant select on public.assignment_log to authenticated;
+grant execute on function public.is_admin(), public.is_member(), public.my_doc(), public.auto_parts(text) to authenticated;
+
 -- 10. Mise à jour en direct sur tous les téléphones
 do $$ begin
   alter publication supabase_realtime add table public.service_state;
