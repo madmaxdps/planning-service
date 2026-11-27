@@ -585,6 +585,14 @@ table.g2{border-collapse:separate;border-spacing:0}
 #dNote .nf{margin-top:6px}#dNote .grp{margin:8px 0 6px}
 #dNote .in{height:44px;width:100%}
 .nt2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.nt2 label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}
+.swr{display:flex;align-items:center;gap:8px}.swb{min-width:22px;height:22px;border-radius:11px;background:var(--red);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 6px}
+.swk{display:grid;gap:6px}.swk label{display:flex;align-items:center;gap:8px;font-size:14px}
+.swi{border-radius:14px;background:var(--soft);padding:10px 12px;margin-bottom:8px;box-shadow:inset 4px 0 0 var(--mut)}
+.swi.st-proposed{box-shadow:inset 4px 0 0 #f59e0b}.swi.st-applied{box-shadow:inset 4px 0 0 var(--ok)}.swi.st-refused,.swi.st-cancelled,.swi.st-reverted{opacity:.8}
+.swh{display:flex;justify-content:space-between;gap:8px;align-items:center}.sst{font-size:12px;font-weight:700;color:var(--mut)}
+.swd{font-size:14px;margin-top:4px}.swm{font-size:13px;color:var(--mut);margin-top:4px;font-style:italic}
+.swi .acts{margin-top:8px;gap:6px}.swi .tb.ok{background:var(--ok);color:#fff;border-color:transparent;font-weight:700}
+.swi details{margin-top:6px;border:0!important;padding:0;background:none;box-shadow:none}.swi summary{font-size:12.5px;cursor:pointer}.swi ul{margin:4px 0 0 16px;padding:0;font-size:12.5px;color:var(--mut)}
 </style>
 </head>
 <body>
@@ -616,6 +624,7 @@ table.g2{border-collapse:separate;border-spacing:0}
   </div>
   <div class="seg mseg" id="mView"><button data-v="w" aria-pressed="true">Semaine</button><button data-v="m" aria-pressed="false">Mois</button></div>
   <div id="mWarn"></div>
+  <button class="teamlink" id="mSw" hidden>Échanges avec les collègues<span class="swr"><span class="swb" id="swBadge" hidden></span><svg class="ico" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></button>
   <button class="teamlink" id="mTeam">Voir le planning de toute l'équipe<svg class="ico" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
   <div id="mPick" hidden><h2>Qui êtes-vous ?</h2><p class="note">Choisissez votre nom pour afficher votre planning.</p><div class="opts" id="mPickL"></div></div>
   <div id="agenda"></div>
@@ -728,7 +737,29 @@ table.g2{border-collapse:separate;border-spacing:0}
   <h2 id="dCellT"></h2>
   <div id="dOpts"></div>
   <div id="dNote"></div>
+  <div class="acts"><button class="tb" id="dSwap" hidden>⇄ Proposer un échange</button></div>
   <div class="acts"><button class="tb" id="dClear">Tout retirer</button><span style="flex:1"></span><button class="tb" id="dClose" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700;min-width:120px">Terminé</button></div>
+</dialog>
+<dialog id="dSw" class="sheet">
+  <h2>Proposer un échange</h2>
+  <form id="fSw" style="display:grid;gap:10px">
+   <p class="note" id="swWhat" style="margin:0"></p>
+   <label>Mon poste à céder<select class="in" id="swPost" style="height:44px"></select></label>
+   <label>Avec<select class="in" id="swTo" style="height:44px"></select></label>
+   <div class="swk"><label><input type="radio" name="swk" value="x" checked> Échange contre un de ses postes</label><label><input type="radio" name="swk" value="c"> Cession, sans contrepartie</label></div>
+   <div id="swB" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Son jour<input class="in" type="date" id="swDay" style="height:44px"></label><label>Son poste<select class="in" id="swPostB" style="height:44px"></select></label></div>
+   <p class="note" id="swInfo" style="margin:0"></p>
+   <label>Message (facultatif)<input class="in" id="swMsg" maxlength="200" style="height:44px" placeholder="ex. empêchement familial"></label>
+   <p class="note" id="swErr" style="margin:0;color:var(--red)"></p>
+   <div class="acts"><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button><span style="flex:1"></span><button class="tb" type="submit" id="swSend" style="background:var(--blue);color:#fff;border-color:transparent;font-weight:700">Envoyer la proposition</button></div>
+  </form>
+</dialog>
+<dialog id="dSwL" class="sheet">
+  <h2>Échanges</h2>
+  <p class="note" style="margin-top:0">Un échange s'applique au planning dès que le collègue accepte. Chaque étape est horodatée avec son auteur ; l'administrateur peut annuler un échange et rétablir le planning.</p>
+  <div class="seg" id="swScope" style="margin-bottom:10px"><button data-sc="me" aria-pressed="true">Les miens</button><button data-sc="all" aria-pressed="false">Tout le service</button></div>
+  <div id="swList"></div>
+  <div class="acts"><span style="flex:1"></span><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button></div>
 </dialog>
 <dialog id="dPer" class="sheet">
   <h2>Saisir une période</h2>
@@ -1011,7 +1042,7 @@ function cellOpts(){
 function openCell(k,d){
   openC={k,d};const dd=D(k);
   $('dCellT').textContent=(d===U.me?'':DOC(d).name+' · ')+dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  cellOpts();$('dCell').showModal();
+  cellOpts();$('dSwap').hidden=!(d===U.me&&swOk()&&swPosts(k,d).length);$('dCell').showModal();
 }
 $('dOpts').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;setCell(openC.k,openC.d,b.dataset.p);save();cellOpts();render()});
 const t2h=v=>v?String(+v.slice(0,2))+':'+v.slice(3,5):'',h2t=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?pad(+m[1])+':'+m[2]:''};
@@ -1032,9 +1063,9 @@ function openDay(k){
   $('dDayF').textContent=free.length?'Non affectés : '+free.map(d=>d.name).join(', '):'Toute l\'équipe est affectée.';
   $('dDay').showModal();
   if(sb&&prof){$('dDayH').innerHTML='<li>Chargement…</li>';
-    sb.from('assignment_log').select('doc_id,old_post,new_post,changed_by_name,changed_at').eq('day',k).order('changed_at',{ascending:false}).limit(20).then(({data,error})=>{
+    sb.from('assignment_log').select('*').eq('day',k).order('changed_at',{ascending:false}).limit(20).then(({data,error})=>{
       const code=v=>v?ids(v).map(id=>P(id)?.code||id).join('+'):'vide';
-      $('dDayH').innerHTML=error?'<li>Historique indisponible.</li>':data.length?data.map(r=>{const t=new Date(r.changed_at);return `<li>${t.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${pad(t.getHours())}:${pad(t.getMinutes())} · ${esc(DOC(r.doc_id)?.name||r.doc_id)} : ${esc(code(r.old_post))} → ${esc(code(r.new_post))} (${esc(r.changed_by_name||'?')})</li>`}).join(''):'<li>Aucune modification enregistrée.</li>'})}
+      $('dDayH').innerHTML=error?'<li>Historique indisponible.</li>':data.length?data.map(r=>{const t=new Date(r.changed_at);return `<li>${t.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} ${pad(t.getHours())}:${pad(t.getMinutes())} · ${esc(DOC(r.doc_id)?.name||r.doc_id)} : ${esc(code(r.old_post))} → ${esc(code(r.new_post))} (${esc(r.changed_by_name||'?')}${r.swap_id?', échange n° '+r.swap_id:''})</li>`}).join(''):'<li>Aucune modification enregistrée.</li>'})}
 }
 
 const go=n=>{cur=mode==='w'?addD(cur,7*n):(()=>{const d=D(cur);return ymd(new Date(d.getFullYear(),d.getMonth()+n,1))})();render()};
@@ -1275,6 +1306,7 @@ function renderMe(){
   const me=DOC(U.me),mv=U.mv==='m'?'m':'w';$('mPick').hidden=!!me;$('agenda').hidden=$('mPer').hidden=$('mView').hidden=!me;
   for(const b of $('mView').children)b.setAttribute('aria-pressed',b.dataset.v===mv);
   for(const b of $('wvs').children)b.setAttribute('aria-pressed',b.dataset.wv===(U.wv||'A'));
+  renderSwBadge();
   if(mv==='m'){const [y,m]=meM.split('-').map(Number);$('mTitle').textContent=cap(MO[m-1])+' '+y}
   else{const e=addD(meW,6),a=D(meW),z=D(e);$('mTitle').textContent='Du '+a.getDate()+(a.getMonth()!==z.getMonth()?' '+MOS[a.getMonth()]:'')+' au '+z.getDate()+' '+MOS[z.getMonth()]}
   $('mPrev').setAttribute('aria-label',mv==='m'?'Mois précédent':'Semaine précédente');$('mNext').setAttribute('aria-label',mv==='m'?'Mois suivant':'Semaine suivante');
@@ -1298,6 +1330,92 @@ $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
 $('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
 $('mTeam').onclick=()=>showTab('Team');
+// ===== Échanges entre collègues =====
+let SW=[],SWE={},HASSW=true,swScope='me',swTodo0=0;
+const swList=()=>REMOTE?SW:(S.swaps||[]);
+const swEv=id=>REMOTE?(SWE[id]||[]):((S.swapEv||{})[id]||[]);
+const swOk=()=>REMOTE?(HASSW&&!isSec&&!!prof&&!!prof.doc_id&&U.me===prof.doc_id):!!U.me;
+const swPosts=(k,d)=>PS(k,d).filter(p=>p.cat!=='autre');
+const fD=k=>D(k).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+const SWST={proposed:'En attente de réponse',applied:'Accepté et appliqué',refused:'Refusé',cancelled:'Annulé',reverted:'Annulé par l\'administrateur',accepted:'Accepté',rejected:'Rejeté'};
+async function loadSwaps(){
+  if(!REMOTE||!sb)return renderSwBadge();
+  try{const a=await sb.from('swaps').select('*').gte('created_at',addD(TK,-400)).order('created_at',{ascending:false}).limit(500);
+    if(a.error){HASSW=false;return renderSwBadge()}HASSW=true;SW=a.data||[];
+    const L=SW.map(x=>x.id);SWE={};if(L.length){const e=await sb.from('swap_events').select('*').in('swap_id',L).order('at');if(!e.error)for(const r of e.data||[])(SWE[r.swap_id]=SWE[r.swap_id]||[]).push(r)}
+  }catch(e){HASSW=false}
+  renderSwBadge();if($('dSwL').open)renderSwL();
+}
+function renderSwBadge(){
+  const ok=swOk()||(canAdmin&&(!REMOTE||HASSW));$('mSw').hidden=!ok||!U.me&&!canAdmin;
+  const n=swList().filter(x=>x.status==='proposed'&&x.to_doc===U.me).length;$('swBadge').hidden=!n;$('swBadge').textContent=n;
+  if(n>swTodo0&&REMOTE)sync(n>1?n+' propositions d\'échange en attente':'Une proposition d\'échange vous attend');swTodo0=n;
+}
+const swLocal={
+  ev(id,action,detail){S.swapEv=S.swapEv||{};(S.swapEv[id]=S.swapEv[id]||[]).push({at:new Date().toISOString(),by_name:DOC(U.me)?.name||'Moi',action,detail:detail||null})},
+  has(k,d,p){return ids(get(k,d)).includes(p)},
+  move(k,a,b,p){if(!this.has(k,a,p))throw new Error('Le planning a changé depuis la proposition : échange impossible');const v=ids(get(k,a)).filter(x=>x!==p).join('+');if(v)S.plan[k][a]=v;else{delete S.plan[k][a];if(!Object.keys(S.plan[k]).length)delete S.plan[k]}const w=ids(get(k,b));if(!w.includes(p))(S.plan[k]=S.plan[k]||{})[b]=[...w,p].join('+')},
+  apply(x,rev){const a=rev?x.to_doc:x.from_doc,b=rev?x.from_doc:x.to_doc,bk=clone(S.plan);
+    try{const one=(k,from,to,p)=>{this.move(k,from,to,p);const n=addD(k,1);if(P(p)?.cat==='garde'&&this.has(n,from,'rs')&&!this.has(n,to,'rs'))this.move(n,from,to,'rs')};
+      one(x.day_a,a,b,x.post_a);if(x.post_b)one(x.day_b,b,a,x.post_b)}catch(e){S.plan=bk;throw e}},
+  propose_swap(o){if(!o.p_to||o.p_to===U.me)throw new Error('Choisissez un collègue');if(!this.has(o.p_day_a,U.me,o.p_post_a))throw new Error('Ce poste n\'est pas sur votre ligne ce jour-là');
+    if(o.p_post_b&&!this.has(o.p_day_b,o.p_to,o.p_post_b))throw new Error('Ce poste n\'est pas sur la ligne du collègue ce jour-là');
+    S.swaps=S.swaps||[];const id=S.swaps.reduce((m,x)=>Math.max(m,x.id),0)+1;
+    S.swaps.unshift({id,created_at:new Date().toISOString(),from_doc:U.me,to_doc:o.p_to,day_a:o.p_day_a,post_a:o.p_post_a,day_b:o.p_day_b||null,post_b:o.p_post_b||null,msg:o.p_msg||null,status:'proposed'});this.ev(id,'proposé',o.p_msg);return id},
+  respond_swap(o){const x=(S.swaps||[]).find(y=>y.id===o.p_id);if(!x||x.status!=='proposed')throw new Error('Cet échange n\'est plus en attente');
+    if(!o.p_accept){x.status='refused';this.ev(x.id,'refusé');return 'refused'}this.apply(x,false);x.status='applied';this.ev(x.id,'accepté et appliqué');return 'applied'},
+  cancel_swap(o){const x=(S.swaps||[]).find(y=>y.id===o.p_id);if(!x)throw new Error('Échange introuvable');
+    if(x.status==='proposed'){x.status='cancelled';this.ev(x.id,'annulé',o.p_reason);return 'cancelled'}
+    if(x.status==='applied'&&canAdmin){this.apply(x,true);x.status='reverted';this.ev(x.id,'annulé par l\'administrateur, planning rétabli',o.p_reason);return 'reverted'}
+    throw new Error('Annulation impossible')}
+};
+async function swCall(fn,args){
+  if(REMOTE){const {data,error}=await sb.rpc(fn,args);if(error)throw new Error(error.message);try{await pull()}catch(e){}await loadSwaps();if(tab==='Me')renderMe();return data}
+  const r=swLocal[fn](args);save();render();if(tab==='Me')renderMe();renderSwBadge();return r;
+}
+function openSwap(k){
+  const ps=swPosts(k,U.me);if(!ps.length)return;$('swErr').textContent='';$('swMsg').value='';
+  $('swWhat').textContent='Votre journée du '+D(k).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  $('swPost').innerHTML=ps.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');$('swPost').dataset.k=k;
+  $('swTo').innerHTML=S.docs.filter(d=>d.id!==U.me&&!d.tmp).map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+  $('swDay').value=k;document.querySelector('[name=swk][value=x]').checked=true;swForm();$('dSw').showModal();
+}
+function swForm(){
+  const k=$('swPost').dataset.k,to=$('swTo').value,x=document.querySelector('[name=swk]:checked').value==='x',kb=$('swDay').value;$('swB').hidden=!x;
+  const pb=x&&kb?swPosts(kb,to):[];$('swPostB').innerHTML=pb.length?pb.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}</option>`).join(''):'<option value="">Aucun poste ce jour-là</option>';
+  const who=DOC(to)?.name||'';const c=PS(k,to);
+  $('swInfo').textContent=to?(`Le ${fD(k)}, ${who} a : ${c.length?c.map(p=>p.label).join(', '):'rien de prévu'}.`)+(x&&kb&&kb!==k?` Le ${fD(kb)}, vous avez : ${PS(kb,U.me).map(p=>p.label).join(', ')||'rien de prévu'}.`:''):'';
+}
+for(const id of ['swTo','swDay','swPost'])$(id).addEventListener('change',swForm);
+document.querySelectorAll('[name=swk]').forEach(r=>r.addEventListener('change',swForm));
+$('fSw').onsubmit=async e=>{e.preventDefault();const x=document.querySelector('[name=swk]:checked').value==='x';
+  const a={p_to:$('swTo').value,p_day_a:$('swPost').dataset.k,p_post_a:$('swPost').value,p_day_b:x?$('swDay').value||null:null,p_post_b:x?$('swPostB').value||null:null,p_msg:$('swMsg').value.trim().slice(0,200)||null};
+  if(x&&!a.p_post_b){$('swErr').textContent='Choisissez le poste du collègue, ou passez en cession.';return}
+  $('swSend').disabled=true;try{await swCall('propose_swap',a);$('dSw').close();$('dCell').close();sync('Proposition envoyée à '+(DOC(a.p_to)?.name||'votre collègue'));openSwL()}catch(err){$('swErr').textContent=err.message}finally{$('swSend').disabled=false}};
+$('dSwap').onclick=()=>openSwap(openC.k);
+function openSwL(){renderSwL();if(!$('dSwL').open)$('dSwL').showModal();if(REMOTE)loadSwaps()}
+$('mSw').onclick=openSwL;
+$('swScope').addEventListener('click',e=>{const b=e.target.closest('[data-sc]');if(!b)return;swScope=b.dataset.sc;for(const x of $('swScope').children)x.setAttribute('aria-pressed',x===b);renderSwL()});
+function renderSwL(){
+  const nm=d=>esc(DOC(d)?.name||d),cd=id=>esc(P(id)?.label||id),me=U.me;
+  let L=swList();if(swScope==='me')L=L.filter(x=>x.from_doc===me||x.to_doc===me);
+  const item=x=>{const ev=swEv(x.id),acts=[];
+    if(x.status==='proposed'&&(x.to_doc===me&&swOk()||!REMOTE))acts.push(`<button class="tb ok" data-swa="${x.id}">Accepter</button><button class="tb" data-swr="${x.id}">Refuser</button>`);
+    if(x.status==='proposed'&&(x.from_doc===me||canAdmin))acts.push(`<button class="tb" data-swc="${x.id}">Annuler la proposition</button>`);
+    if(x.status==='applied'&&canAdmin)acts.push(`<button class="tb" data-swc="${x.id}">Annuler et rétablir le planning</button>`);
+    return `<div class="swi st-${esc(x.status)}"><div class="swh"><b>${nm(x.from_doc)} ⇄ ${nm(x.to_doc)}</b><span class="sst">${esc(SWST[x.status]||x.status)}</span></div>
+     <div class="swd">${nm(x.from_doc)} cède <b>${cd(x.post_a)}</b> du ${fD(x.day_a)}${x.post_b?` · ${nm(x.to_doc)} cède en retour <b>${cd(x.post_b)}</b> du ${fD(x.day_b)}`:' · cession sans contrepartie'}</div>
+     ${x.msg?`<div class="swm">« ${esc(x.msg)} »</div>`:''}${acts.length?`<div class="acts">${acts.join('')}</div>`:''}
+     <details><summary>Traçabilité (${ev.length})</summary><ul>${ev.map(e=>{const t=new Date(e.at);return `<li>${t.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'})} ${pad(t.getHours())}:${pad(t.getMinutes())} · ${esc(e.by_name||'?')} · ${esc(e.action)}${e.detail?' · « '+esc(e.detail)+' »':''}</li>`}).join('')||'<li>—</li>'}</ul></details></div>`};
+  const todo=L.filter(x=>x.status==='proposed'&&x.to_doc===me),wait=L.filter(x=>x.status==='proposed'&&x.to_doc!==me),done=L.filter(x=>x.status!=='proposed');
+  $('swList').innerHTML=(REMOTE&&!HASSW?'<p class="note" style="color:var(--red)">Les échanges ne sont pas encore activés dans la base : l\'administrateur doit exécuter la mise à jour SQL.</p>':'')+
+   (todo.length?'<p class="grp">À traiter</p>'+todo.map(item).join(''):'')+(wait.length?'<p class="grp">En attente</p>'+wait.map(item).join(''):'')+(done.length?'<p class="grp">Historique</p>'+done.map(item).join(''):'')+
+   (L.length?'':'<p class="note">Aucun échange pour l\'instant. Pour en proposer un, touchez un de vos jours, puis « Proposer un échange ».</p>');
+}
+$('swList').addEventListener('click',async e=>{const b=e.target.closest('[data-swa],[data-swr],[data-swc]');if(!b)return;
+  const id=+(b.dataset.swa||b.dataset.swr||b.dataset.swc);if(b.dataset.swc&&!twoTap(b,'Confirmer l\'annulation'))return;b.disabled=true;
+  try{if(b.dataset.swc)await swCall('cancel_swap',{p_id:id,p_reason:null});else await swCall('respond_swap',{p_id:id,p_accept:!!b.dataset.swa});sync(b.dataset.swa?'Échange accepté : planning mis à jour':b.dataset.swr?'Échange refusé':'Échange annulé')}
+  catch(err){sync(err.message,true)}renderSwL()});
 $('printBtn').onclick=()=>{buildPrint();setTimeout(()=>window.print(),50)};
 function buildPrint(){
   const days=range(),wk=days.length<=7,used=new Set();
@@ -1373,8 +1491,9 @@ async function afterLogin(){
   if(!p.active){await sb.auth.signOut();return showAuth('Votre compte n\'est pas encore activé. Demandez à l\'administrateur du planning de l\'activer.')}
   U=Object.assign({mode:'w',colors:{}},p.prefs);canEdit=true;canAdmin=p.role==='admin';isSec=p.role==='secretary';if(p.doc_id&&!isSec)U.me=p.doc_id;else if(!canAdmin&&!isSec)U.me='';
   $('acct').textContent=(p.display_name||user.email)+' · '+user.email+' · '+(canAdmin?'administrateur':isSec?'secrétaire':'membre');
-  await pull();startApp();sync('À jour');loadAccts();
+  await pull();startApp();sync('À jour');loadAccts();loadSwaps();
   sb.channel('planning')
+   .on('postgres_changes',{event:'*',schema:'public',table:'swaps'},()=>loadSwaps())
    .on('postgres_changes',{event:'*',schema:'public',table:'assignments'},pl=>{
      const r=pl.eventType==='DELETE'?pl.old:pl.new;if(!r||!r.day)return;const k=r.day,d=r.doc_id;
      for(const o of [S.plan,base]){if(pl.eventType==='DELETE'){if(o[k]){delete o[k][d];if(!Object.keys(o[k]).length)delete o[k]}}else(o[k]=o[k]||{})[d]=r.post_id}
@@ -1407,7 +1526,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.2 (27 nov.)';
+const APPV='2027.3 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
