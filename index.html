@@ -593,6 +593,12 @@ table.g2{border-collapse:separate;border-spacing:0}
 .swd{font-size:14px;margin-top:4px}.swm{font-size:13px;color:var(--mut);margin-top:4px;font-style:italic}
 .swi .acts{margin-top:8px;gap:6px}.swi .tb.ok{background:var(--ok);color:#fff;border-color:transparent;font-weight:700}
 .swi details{margin-top:6px;border:0!important;padding:0;background:none;box-shadow:none}.swi summary{font-size:12.5px;cursor:pointer}.swi ul{margin:4px 0 0 16px;padding:0;font-size:12.5px;color:var(--mut)}
+.fab2{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));z-index:4;border:0;background:var(--card);color:var(--acc);border-radius:18px;padding:0 16px;height:52px;font:inherit;font-weight:700;font-size:15px;display:flex;gap:8px;align-items:center;box-shadow:var(--shadow);cursor:pointer}
+.mbar{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:5;display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--card);border-radius:18px;padding:8px 8px 8px 16px;box-shadow:0 10px 30px rgb(0 0 0/.25);font-weight:600;font-size:14px}
+.mbar span{flex:1}.mbar .tb{height:40px;background:transparent!important;color:var(--card)!important;border:1px solid rgb(255 255 255/.35)!important;box-shadow:none!important}.mbar .tb.pri{background:var(--acc)!important;color:#fff!important;border-color:transparent!important;font-weight:700}.mbar .tb:disabled{opacity:.5}
+.msel-on #agenda [data-k],.msel-on #agenda [data-sel]{cursor:copy}
+.msel-on #agenda .picked{outline:3px solid var(--acc)!important;outline-offset:-3px;position:relative}
+.msel-on #agenda .picked::after{content:'✓';position:absolute;top:4px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;z-index:2}
 </style>
 </head>
 <body>
@@ -628,6 +634,8 @@ table.g2{border-collapse:separate;border-spacing:0}
   <button class="teamlink" id="mTeam">Voir le planning de toute l'équipe<svg class="ico" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
   <div id="mPick" hidden><h2>Qui êtes-vous ?</h2><p class="note">Choisissez votre nom pour afficher votre planning.</p><div class="opts" id="mPickL"></div></div>
   <div id="agenda"></div>
+  <div class="mbar" id="mBar" hidden><span id="mBarN"></span><button class="tb" id="mBarX">Annuler</button><button class="tb pri" id="mBarGo">Modifier</button></div>
+  <button class="fab2" id="mMulti" hidden aria-label="Sélectionner plusieurs jours"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h4v4H4zM10 7h10M4 15h4v4H4zM10 17h10"/></svg>Plusieurs jours</button>
   <button class="fab" id="mPer" aria-label="Saisir une période (vacances, congés…)"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Période</button>
 </div>
 <div class="tab" id="tabTeam" hidden>
@@ -760,6 +768,13 @@ table.g2{border-collapse:separate;border-spacing:0}
   <div class="seg" id="swScope" style="margin-bottom:10px"><button data-sc="me" aria-pressed="true">Les miens</button><button data-sc="all" aria-pressed="false">Tout le service</button></div>
   <div id="swList"></div>
   <div class="acts"><span style="flex:1"></span><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button></div>
+</dialog>
+<dialog id="dMulti" class="sheet">
+  <h2 id="dMultiT"></h2>
+  <div class="seg" id="mMode" style="margin-bottom:8px"><button data-mm="r" aria-pressed="true">Remplacer par</button><button data-mm="a" aria-pressed="false">Ajouter</button></div>
+  <p class="note" id="mModeN" style="margin-top:0"></p>
+  <div id="mOpts"></div>
+  <div class="acts"><button class="tb" id="mErase">Effacer ces jours</button><span style="flex:1"></span><button class="tb" type="button" onclick="this.closest('dialog').close()">Fermer</button></div>
 </dialog>
 <dialog id="dPer" class="sheet">
   <h2>Saisir une période</h2>
@@ -1317,7 +1332,7 @@ function renderMe(){
   if(!me&&REMOTE&&!canAdmin&&!isSec){$('mPick').innerHTML='<h2>Compte pas encore relié</h2><p class="note">Votre compte n\'est pas encore relié à une ligne du planning. Demandez à l\'administrateur de le faire dans Réglages, Comptes.</p>';return}
   if(!me){$('mWho').textContent='';$('mPickL').innerHTML=S.docs.map(d=>`<button class="opt" data-me="${esc(d.id)}" style="background:var(--soft)">${esc(d.name)}</button>`).join('')||'<p class="note">Aucun médecin : ajoutez l\'équipe dans Réglages.</p>';return}
   $('mWho').textContent=me.name+(canAdmin||isSec||!REMOTE?' · changer':'');$('mPer').hidden=!mayEdit(me.id);$('mWho').disabled=REMOTE&&!canAdmin&&!isSec;
-  $('agenda').innerHTML=mv==='m'?monthView(me.id):weekView(me.id);
+  $('agenda').innerHTML=mv==='m'?monthView(me.id):weekView(me.id);mselPaint();
   let mons;if(mv==='m'){const [y,m]=meM.split('-').map(Number),n=new Date(y,m,0).getDate();mons=[...new Set(Array.from({length:n},(_,i)=>monOf(meM+'-'+pad(i+1))))]}else mons=[meW];
   const warn=[];
   for(const mon of mons.filter(m=>addD(m,6)>=TK)){const c=capa(mon,me.id);if(c.ind&&c.max<c.target)warn.push(`Semaine du ${D(mon).getDate()} ${MO[D(mon).getMonth()]} : avec ${c.ind} jour(s) d'indisponibilité, vous ne pourrez atteindre que ${c.max} h sur ${c.target} h.`)}
@@ -1333,6 +1348,29 @@ $('mWho').onclick=()=>{U.me='';renderMe()};
 $('mPickL').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(!b)return;U.me=b.dataset.me;savePrefs();renderEditors();renderMe()});
 $('agenda').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){const c=$('dc-'+go.dataset.go);if(c)c.scrollIntoView({behavior:'smooth',block:'start'});return}const sl=e.target.closest('[data-sel]');if(sl){meSel=sl.dataset.sel;renderMe();return}const b=e.target.closest('[data-k]');if(b&&mayEdit(U.me))openCell(b.dataset.k,U.me)});
 $('mTeam').onclick=()=>showTab('Team');
+// ===== Sélection de plusieurs jours (Mon planning) =====
+let msel=null,mmode='r';
+function mselPaint(){const on=!!msel;document.body.classList.toggle('msel-on',on);$('mBar').hidden=!on;$('mMulti').hidden=on||!DOC(U.me)||!mayEdit(U.me);$('mPer').hidden=on||!DOC(U.me)||!mayEdit(U.me);
+  if(!on)return;const n=msel.size;$('mBarN').textContent=n?n+' jour'+(n>1?'s':'')+' sélectionné'+(n>1?'s':''):'Touchez les jours à corriger';$('mBarGo').disabled=!n;
+  document.querySelectorAll('#agenda [data-k],#agenda [data-sel]').forEach(e=>e.classList.toggle('picked',msel.has(e.dataset.k||e.dataset.sel)))}
+$('mMulti').onclick=()=>{msel=new Set();mselPaint()};
+$('mBarX').onclick=()=>{msel=null;mselPaint()};
+$('agenda').addEventListener('click',e=>{if(!msel)return;const b=e.target.closest('[data-k],[data-sel]');if(!b||b.disabled)return;e.stopImmediatePropagation();e.preventDefault();const k=b.dataset.k||b.dataset.sel;msel.has(k)?msel.delete(k):msel.add(k);mselPaint()},true);
+function multiOpts(){const d=U.me,posts=S.posts.filter(p=>allowed(p)&&(canAdmin||isSec&&DOC(d)?.tmp||!p.auto));
+  $('dMultiT').textContent=msel.size+' jour'+(msel.size>1?'s':'')+' : '+[...msel].sort().map(k=>D(k).getDate()+' '+MOS[D(k).getMonth()]).join(', ');
+  $('mModeN').textContent=mmode==='r'?'Le poste choisi remplace ce qui était saisi ces jours-là'+(canAdmin?'.':' (le bloc et la consultation posés par l\'administrateur sont gardés).'):'Le poste choisi s\'ajoute à ce qui est déjà saisi (ex. réunion, garde de nuit après une journée).';
+  $('mOpts').innerHTML=`<div class="opts">${posts.map(p=>`<button class="opt" data-mp="${esc(p.id)}" style="${tint(esc(col(p)))}"><span><b>${esc(p.code)}</b><small style="display:block;font-weight:400;font-size:12px;line-height:1.2">${esc(p.label)}</small></span></button>`).join('')}</div>`}
+$('mBarGo').onclick=()=>{if(!msel||!msel.size)return;multiOpts();$('dMulti').showModal()};
+$('mMode').addEventListener('click',e=>{const b=e.target.closest('[data-mm]');if(!b)return;mmode=b.dataset.mm;for(const x of $('mMode').children)x.setAttribute('aria-pressed',x===b);multiOpts()});
+function multiDone(msg){save();$('dMulti').close();msel=null;render();if(tab==='Me')renderMe();sync(msg)}
+$('mOpts').addEventListener('click',e=>{const b=e.target.closest('[data-mp]');if(!b||!msel)return;const d=U.me,pid=b.dataset.mp;if(!mayEdit(d))return;
+  for(const k of msel){if(mmode==='r'){const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null)}
+    if(!ids(get(k,d)).includes(pid))setCell(k,d,pid)}
+  multiDone(msel.size+' jour(s) modifié(s) : '+(P(pid)?.label||pid))});
+$('mErase').onclick=()=>{const b=$('mErase');if(!msel||!twoTap(b,'Confirmer l\'effacement'))return;const d=U.me,n=msel.size;
+  for(const k of msel){const keep=canAdmin?null:autoOnly(get(k,d));if(keep)(S.plan[k]=S.plan[k]||{})[d]=keep;else setCell(k,d,null);pruneNotes(k,d)}
+  b.dataset.sure='';b.textContent='Effacer ces jours';b.style.fontSize='';multiDone(n+' jour(s) effacé(s)')};
+$('dMulti').addEventListener('close',()=>{const b=$('mErase');b.dataset.sure='';b.textContent='Effacer ces jours';b.style.fontSize=''});
 // ===== Échanges entre collègues =====
 let SW=[],SWE={},HASSW=true,swScope='me',swTodo0=0;
 const swList=()=>REMOTE?SW:(S.swaps||[]);
