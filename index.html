@@ -1082,7 +1082,7 @@ function cellOpts(){
 function openCell(k,d){
   openC={k,d};const dd=D(k);
   $('dCellT').textContent=(d===U.me?'':DOC(d).name+' · ')+dd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  cellOpts();$('dSwap').hidden=!(d===U.me&&!isSec);$('dSwN').textContent='';$('dCell').showModal();
+  cellOpts();$('dSwap').hidden=isSec||!canEdit;$('dSwN').textContent='';$('dCell').showModal();
 }
 $('dOpts').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;setCell(openC.k,openC.d,b.dataset.p);save();cellOpts();render()});
 const t2h=v=>v?String(+v.slice(0,2))+':'+v.slice(3,5):'',h2t=v=>{const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);return m?pad(+m[1])+':'+m[2]:''};
@@ -1572,11 +1572,11 @@ $('fSw').onsubmit=async e=>{e.preventDefault();if(!swSt.to)return;
   const same=swSt.pb&&swSt.kb===swSt.k&&swSt.pb===swSt.pa;if(same){$('swErr').textContent='Vous avez le même poste ce jour-là : choisissez un autre jour.';return}
   const a={p_to:swSt.to,p_day_a:swSt.k,p_post_a:swSt.pa,p_day_b:swSt.pb?swSt.kb:null,p_post_b:swSt.pb||null,p_msg:$('swMsg').value.trim().slice(0,200)||null};
   $('swSend').disabled=true;try{const id=await swCall('propose_swap',a);swNotify(id);$('dSw').close();$('dCell').close();sync('Proposition envoyée à '+(DOC(a.p_to)?.name||'votre collègue'))}catch(err){$('swErr').textContent=err.message}finally{$('swSend').disabled=false}};
-const swWhyNot=k=>{if(REMOTE&&!HASSW)return 'Les échanges ne sont pas encore activés dans la base : l\'administrateur doit exécuter la mise à jour SQL des échanges.';
+const swWhyNot=(k,d)=>{if(REMOTE&&(!prof||!prof.doc_id))return 'Votre compte n\'est pas relié à votre ligne du planning : dans Réglages › Comptes, choisissez votre nom en face de votre compte.';if(d!==U.me)return 'Un échange se propose depuis un de VOS jours : touchez une case de votre propre ligne.';if(REMOTE&&!HASSW)return 'Les échanges ne sont pas encore activés dans la base : l\'administrateur doit exécuter la mise à jour SQL des échanges.';
   if(REMOTE&&(!prof||!prof.doc_id||U.me!==prof.doc_id))return 'Votre compte n\'est pas relié à votre ligne du planning : l\'administrateur doit la choisir dans Réglages › Comptes.';
   if(!swPosts(k,U.me).length)return 'Rien à échanger ce jour-là : posez d\'abord votre garde ou votre poste, puis touchez Échange.';
   if(!S.docs.some(d=>d.id!==U.me&&!d.tmp))return 'Aucun collègue titulaire dans l\'équipe pour l\'instant : les échanges se font entre médecins ayant un compte (pas avec les intérimaires).';return ''};
-$('dSwap').onclick=()=>{const w=swWhyNot(openC.k);if(w){$('dSwN').textContent=w;return}openSwap(openC.k)};
+$('dSwap').onclick=()=>{const w=swWhyNot(openC.k,openC.d);if(w){$('dSwN').textContent=w;return}openSwap(openC.k)};
 function openSwL(){renderSwL();if(!$('dSwL').open)$('dSwL').showModal();if(REMOTE)loadSwaps()}
 $('mSw').onclick=openSwL;
 $('swScope').addEventListener('click',e=>{const b=e.target.closest('[data-sc]');if(!b)return;swScope=b.dataset.sc;for(const x of $('swScope').children)x.setAttribute('aria-pressed',x===b);renderSwL()});
@@ -1710,7 +1710,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.8 (27 nov.)';
+const APPV='2027.9 (27 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
