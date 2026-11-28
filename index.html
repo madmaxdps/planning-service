@@ -611,6 +611,7 @@ table.g2{border-collapse:separate;border-spacing:0}
 :root:is([data-skin=vif],[data-skin=lagon],[data-skin=soleil],[data-skin=jade]) #hint{color:var(--mut)}
 .swdocs{display:flex;flex-wrap:wrap;gap:6px}.swdocs .tb[aria-pressed=true]{background:var(--acc);color:#fff;border-color:transparent;font-weight:700}
 #dSw .opt.on{outline:3px solid var(--acc);outline-offset:1px}#dSw .opts{display:flex;flex-wrap:wrap;gap:6px}#dSw .opt{min-height:44px;padding:6px 12px}
+.drow .rhy{grid-column:1/-1;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:14px;padding:0 10px}
 </style>
 </head>
 <body>
@@ -974,7 +975,10 @@ function coverage(k){
 }
 const pctOf=id=>{const p=+(DOC(id)?.pct);return p>0&&p<=100?p/100:1};
 function weekH(mon,d){let h=0,abs=0,any=false;for(let i=0;i<7;i++){const k=addD(mon,i),ps=PS(k,d);if(ps.length)any=true;if(ps.some(p=>p.cat==='absence')){if(!isWE(k))abs++;continue}for(const p of ps)h+=hrs(p,k)}
-  return {h,any,abs,target:Math.round(Math.max(0,(+S.minH||0)*pctOf(d)*(1-Math.min(5,abs)/5)))}}
+  return {h,any,abs,target:Math.round(Math.max(0,(+S.minH||0)*wkPct(mon,d)*(1-Math.min(5,abs)/5)))}}
+// temps partiel une semaine sur deux : semaine de présence = 2 × quotité (plafonné à 100 %), l'autre = le reste
+const onWeek=(mon,d)=>{const r=DOC(d)?.rhythm;if(r!=='even'&&r!=='odd')return null;return (isoW(mon)%2===0)===(r==='even')};
+function wkPct(mon,d){const q=pctOf(d),o=onWeek(mon,d);if(o===null||q>=1)return q;return o?Math.min(1,2*q):Math.max(0,2*q-1)}
 // disponibilité sur une période : jours ouvrés hors congés/formation (les congés ne créent pas de dette)
 function availOf(months,d){let n=0;for(const ym of months){const [y,m]=ym.split('-').map(Number),N=new Date(y,m,0).getDate();for(let i=1;i<=N;i++){const k=ym+'-'+pad(i);if(isWE(k))continue;if(!PS(k,d).some(p=>p.cat==='absence'))n++}}return n}
 function capa(mon,d){const w=weekH(mon,d);let ind=0,free=0;for(let i=0;i<7;i++){const k=addD(mon,i),ps=PS(k,d).filter(p=>p.cat!=='autre');if(ps.some(p=>p.cat==='indispo'))ind++;if(!ps.length&&!isWE(k))free++}return {...w,ind,max:w.h+free*(+S.dayH||11)}}
@@ -1142,7 +1146,7 @@ function renderRooms(){
 }
 function renderEditors(){
   renderRooms();
-  $('docs').innerHTML=S.docs.map((d,i)=>`<div class="drow" data-i="${i}"><input type="text" data-f="name" value="${esc(d.name)}" maxlength="30" aria-label="Nom"><select data-f="pct" aria-label="Quotité de travail">${[100,90,80,70,60,50].map(v=>`<option value="${v}" ${(+d.pct||100)===v?'selected':''}>${v} %</option>`).join('')}</select><label class="chk tmpk" title="Intérimaire : hors répartition automatique et hors équilibre"><input type="checkbox" data-f="tmp" ${d.tmp?'checked':''}>Intérim</label><button class="ib" data-del="${i}" aria-label="Retirer ${esc(d.name)}" style="height:40px;font-size:15px">✕</button></div>`).join('');
+  $('docs').innerHTML=S.docs.map((d,i)=>`<div class="drow" data-i="${i}"><input type="text" data-f="name" value="${esc(d.name)}" maxlength="30" aria-label="Nom"><select data-f="pct" aria-label="Quotité de travail">${[100,90,80,70,60,50].map(v=>`<option value="${v}" ${(+d.pct||100)===v?'selected':''}>${v} %</option>`).join('')}</select><label class="chk tmpk" title="Intérimaire : hors répartition automatique et hors équilibre"><input type="checkbox" data-f="tmp" ${d.tmp?'checked':''}>Intérim</label><button class="ib" data-del="${i}" aria-label="Retirer ${esc(d.name)}" style="height:40px;font-size:15px">✕</button>${(+d.pct||100)<100&&!d.tmp?`<select class="rhy" data-f="rhythm" aria-label="Répartition du temps partiel"><option value="" ${!d.rhythm?'selected':''}>Présent toutes les semaines (${Math.round(42*(+d.pct||100)/100)} h / sem.)</option><option value="even" ${d.rhythm==='even'?'selected':''}>Une semaine sur deux : semaines paires</option><option value="odd" ${d.rhythm==='odd'?'selected':''}>Une semaine sur deux : semaines impaires</option></select>`:''}</div>`).join('')+`<p class="note">Semaine en cours : S${isoW(monOf(TK))} (${isoW(monOf(TK))%2?'impaire':'paire'}). « Une semaine sur deux » : à 50 %, le temps minimum (42 h) est demandé la semaine de présence et rien l'autre semaine ; au-delà de 50 %, l'autre semaine porte le reste.</p>`;
   $('meSel').innerHTML='<option value="">—</option>'+S.docs.map(d=>`<option value="${esc(d.id)}" ${d.id===U.me?'selected':''}>${esc(d.name)}</option>`).join('');
   $('posts').innerHTML=S.posts.map((p,i)=>`<div class="prow" data-i="${i}">
    <input type="color" data-f="color" value="${esc(p.color)}" aria-label="Couleur">
@@ -1160,7 +1164,7 @@ function renderEditors(){
   $('autoRS').checked=!!S.autoRS;$('minH').value=S.minH;$('dayH').value=S.dayH;
 }
 const twoTap=(b,msg)=>{if(b.dataset.sure==='1')return true;b.dataset.sure='1';b.textContent=msg;b.style.fontSize='12px';return false};
-$('docs').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(!r)return;const doc=S.docs[+r.dataset.i];if(e.target.dataset.f==='tmp'){if(e.target.checked)doc.tmp=true;else delete doc.tmp}else if(e.target.dataset.f==='pct')doc.pct=+e.target.value;else{const v=e.target.value.trim();if(!v)return;doc.name=v}save();render();renderEditors()});
+$('docs').addEventListener('change',e=>{const r=e.target.closest('[data-i]');if(!r)return;const doc=S.docs[+r.dataset.i];if(e.target.dataset.f==='tmp'){if(e.target.checked)doc.tmp=true;else delete doc.tmp}else if(e.target.dataset.f==='pct')doc.pct=+e.target.value;else if(e.target.dataset.f==='rhythm'){if(e.target.value)doc.rhythm=e.target.value;else delete doc.rhythm}else{const v=e.target.value.trim();if(!v)return;doc.name=v}save();render();renderEditors()});
 $('docs').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b||!twoTap(b,'Sûr ?'))return;const d=S.docs.splice(+b.dataset.del,1)[0];for(const k in S.plan)delete S.plan[k][d.id];save();renderEditors();render()});
 let undo=null;
 $('autoFill').onclick=()=>{
@@ -1713,7 +1717,7 @@ $('fPw').onsubmit=async e=>{e.preventDefault();const a=$('pw1').value;
 $('chPw').onclick=()=>showAuth('',true);
 $('logout').onclick=async()=>{try{await sb.auth.signOut()}catch(e){}try{localStorage.removeItem(KEY+'-cache')}catch(e){}location.reload()};
 boot();
-const APPV='2027.10 (27 nov.)';
+const APPV='2027.11 (28 nov.)';
 if('serviceWorker' in navigator&&location.protocol==='https:'){try{
   const had=!!navigator.serviceWorker.controller;let reloaded=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded){reloaded=true;location.reload()}});
